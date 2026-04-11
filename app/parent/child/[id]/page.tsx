@@ -39,7 +39,9 @@ export default function ChildDetail({ params }: { params: Promise<{ id: string }
   const [assigning, setAssigning] = useState(false)
   const [error, setError] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
-
+  const [pin, setPin] = useState('')
+  const [savingPin, setSavingPin] = useState(false)
+  const [pinSaved, setPinSaved] = useState(false)
   useEffect(() => {
     loadAll()
   }, [])
@@ -155,7 +157,30 @@ export default function ChildDetail({ params }: { params: Promise<{ id: string }
 
     await loadAssigned()
   }
+const handleSavePin = async () => {
+  setSavingPin(true)
+  setPinSaved(false)
 
+  if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+    setError('PIN must be exactly 4 digits')
+    setSavingPin(false)
+    return
+  }
+
+  const { error: pinError } = await supabase
+    .from('children')
+    .update({ pin })
+    .eq('id', id)
+
+  if (pinError) {
+    setError(pinError.message)
+    setSavingPin(false)
+    return
+  }
+
+  setPinSaved(true)
+  setSavingPin(false)
+}
   const categories = ['All', ...Array.from(
     new Set(subjectList.map(s => s.category))
   )]
@@ -465,6 +490,78 @@ export default function ChildDetail({ params }: { params: Promise<{ id: string }
           </div>
         )}
 
+<div style={{
+  background: '#ffffff',
+  border: '0.5px solid #e5e3db',
+  borderRadius: '12px',
+  padding: '24px',
+  marginBottom: '24px',
+}}>
+  <h2 style={{
+    fontSize: '16px',
+    fontWeight: '500',
+    color: '#2C2C2A',
+    marginBottom: '6px',
+  }}>
+    Child login PIN
+  </h2>
+  <p style={{
+    fontSize: '13px',
+    color: '#888780',
+    marginBottom: '16px',
+  }}>
+    Set a 4 digit PIN your child will use to log in
+  </p>
+  <div style={{
+    display: 'flex',
+    gap: '10px',
+    alignItems: 'center',
+  }}>
+    <input
+      type="number"
+      placeholder="Enter 4 digit PIN"
+      value={pin}
+      maxLength={4}
+      onChange={(e) => {
+        if (e.target.value.length <= 4) setPin(e.target.value)
+      }}
+      style={{
+        width: '160px',
+        padding: '10px 14px',
+        border: '0.5px solid #D3D1C7',
+        borderRadius: '8px',
+        fontSize: '14px',
+        outline: 'none',
+        boxSizing: 'border-box',
+      }}
+    />
+    <button
+      onClick={handleSavePin}
+      disabled={savingPin}
+      style={{
+        padding: '10px 20px',
+        background: savingPin ? '#AFA9EC' : '#7F77DD',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '8px',
+        fontSize: '14px',
+        cursor: savingPin ? 'not-allowed' : 'pointer',
+      }}>
+      {savingPin ? 'Saving...' : 'Save PIN'}
+    </button>
+    {pinSaved && (
+      <span style={{
+        fontSize: '13px',
+        color: '#085041',
+        background: '#E1F5EE',
+        padding: '6px 12px',
+        borderRadius: '8px',
+      }}>
+        PIN saved successfully
+      </span>
+    )}
+  </div>
+</div>
         <h2 style={{
           fontSize: '16px',
           fontWeight: '500',

@@ -55,7 +55,7 @@ export default function Hero() {
           I am a parent
         </button>
         <button
-          onClick={() => router.push('/login?role=student')}
+          onClick={() => router.push('/child-login')}
           style={{
             padding: '12px 28px',
             background: '#fff',
