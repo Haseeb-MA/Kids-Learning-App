@@ -397,6 +397,50 @@ export default function ChildDashboard() {
           </div>
         )}
 
+        <div style={{
+  background: '#EEEDFE',
+  border: '0.5px solid #AFA9EC',
+  borderRadius: '12px',
+  padding: '20px 24px',
+  marginBottom: '28px',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  cursor: 'pointer',
+}}
+onClick={() => router.push('/child/homework-helper')}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+    <div style={{
+      width: '44px',
+      height: '44px',
+      borderRadius: '12px',
+      background: '#7F77DD',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '22px',
+    }}>
+      🤖
+    </div>
+    <div>
+      <p style={{
+        fontSize: '15px',
+        fontWeight: '500',
+        color: '#26215C',
+        marginBottom: '3px',
+      }}>
+        Homework helper
+      </p>
+      <p style={{ fontSize: '13px', color: '#534AB7' }}>
+        Stuck on something? Get hints without being given the answer
+      </p>
+    </div>
+  </div>
+  <span style={{ fontSize: '14px', color: '#7F77DD' }}>
+    Open →
+  </span>
+</div>
+
         <h2 style={{
           fontSize: '16px',
           fontWeight: '500',
