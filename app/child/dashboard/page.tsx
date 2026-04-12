@@ -21,11 +21,15 @@ interface Badge {
   earned_at: string
 }
 
+interface ChildInfo {
+  id: string
+  name: string
+  grade: string
+}
+
 export default function ChildDashboard() {
   const router = useRouter()
-  const [childName, setChildName] = useState('')
-  const [childGrade, setChildGrade] = useState('')
-  const [childId, setChildId] = useState('')
+  const [childInfo, setChildInfo] = useState<ChildInfo | null>(null)
   const [assigned, setAssigned] = useState<AssignedSubject[]>([])
   const [badges, setBadges] = useState<Badge[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,46 +44,50 @@ export default function ChildDashboard() {
       return
     }
 
-    setChildId(storedId)
-    setChildName(storedName || '')
-    setChildGrade(storedGrade || '')
-    loadData(storedId)
+    const info = {
+      id: storedId,
+      name: storedName || '',
+      grade: storedGrade || '',
+    }
+
+    setChildInfo(info)
+
+    const fetchData = async () => {
+      const { data: assignedData } = await supabase
+        .from('assigned_subjects')
+        .select(`
+          id,
+          deadline,
+          completed,
+          subjects (
+            id,
+            name,
+            category
+          )
+        `)
+        .eq('child_id', storedId)
+        .order('deadline', { ascending: true })
+
+      if (assignedData) setAssigned(assignedData as any)
+
+      const { data: badgeData } = await supabase
+        .from('badges')
+        .select('*')
+        .eq('child_id', storedId)
+        .order('earned_at', { ascending: false })
+
+      if (badgeData) setBadges(badgeData)
+      setLoading(false)
+    }
+
+    fetchData()
   }, [])
 
-  const loadData = async (id: string) => {
-    const { data: assignedData } = await supabase
-      .from('assigned_subjects')
-      .select(`
-        id,
-        deadline,
-        completed,
-        subjects (
-          id,
-          name,
-          category
-        )
-      `)
-      .eq('child_id', id)
-      .order('deadline', { ascending: true })
-
-    if (assignedData) setAssigned(assignedData as any)
-
-    const { data: badgeData } = await supabase
-      .from('badges')
-      .select('*')
-      .eq('child_id', id)
-      .order('earned_at', { ascending: false })
-
-    if (badgeData) setBadges(badgeData)
-    setLoading(false)
-  }
-
   const getDaysLeft = (deadline: string) => {
-    const days = Math.ceil(
+    return Math.ceil(
       (new Date(deadline).getTime() - new Date().getTime())
       / (1000 * 60 * 60 * 24)
     )
-    return days
   }
 
   const getDeadlineColor = (deadline: string) => {
@@ -185,7 +193,7 @@ export default function ChildDashboard() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <span style={{ fontSize: '13px', color: '#CECBF6' }}>
-            Grade {childGrade}
+            Grade {childInfo?.grade}
           </span>
           <button
             onClick={handleLogout}
@@ -223,7 +231,7 @@ export default function ChildDashboard() {
               color: '#26215C',
               marginBottom: '6px',
             }}>
-              Hello, {childName.split(' ')[0]}! 👋
+              Hello, {childInfo?.name.split(' ')[0]}! 👋
             </h1>
             <p style={{ fontSize: '14px', color: '#534AB7' }}>
               {total === 0
@@ -259,11 +267,7 @@ export default function ChildDashboard() {
             }}>
               Your badges 🏆
             </h2>
-            <div style={{
-              display: 'flex',
-              gap: '10px',
-              flexWrap: 'wrap',
-            }}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               {badges.map((badge) => (
                 <div key={badge.id} style={{
                   background: '#FAEEDA',
@@ -319,14 +323,17 @@ export default function ChildDashboard() {
             marginBottom: '28px',
           }}>
             {assigned.map((item) => (
-              <div key={item.id} style={{
-                background: '#ffffff',
-                border: '0.5px solid #e5e3db',
-                borderRadius: '12px',
-                padding: '18px',
-                cursor: 'pointer',
-                opacity: item.completed ? 0.7 : 1,
-              }}>
+              <div
+                key={item.id}
+                onClick={() => router.push(`/child/subject/${item.subjects.id}`)}
+                style={{
+                  background: '#ffffff',
+                  border: '0.5px solid #e5e3db',
+                  borderRadius: '12px',
+                  padding: '18px',
+                  cursor: 'pointer',
+                  opacity: item.completed ? 0.7 : 1,
+                }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -354,10 +361,7 @@ export default function ChildDashboard() {
                     }}>
                       {item.subjects.name}
                     </p>
-                    <p style={{
-                      fontSize: '12px',
-                      color: '#888780',
-                    }}>
+                    <p style={{ fontSize: '12px', color: '#888780' }}>
                       {item.subjects.category}
                     </p>
                   </div>
@@ -383,10 +387,7 @@ export default function ChildDashboard() {
                       : getDeadlineText(item.deadline)}
                   </span>
                   {!item.completed && (
-                    <span style={{
-                      fontSize: '12px',
-                      color: '#7F77DD',
-                    }}>
+                    <span style={{ fontSize: '12px', color: '#7F77DD' }}>
                       Start →
                     </span>
                   )}
@@ -420,10 +421,7 @@ export default function ChildDashboard() {
                 cursor: 'pointer',
                 textAlign: 'center',
               }}>
-              <div style={{
-                fontSize: '32px',
-                marginBottom: '8px',
-              }}>
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>
                 {game.icon}
               </div>
               <p style={{
