@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 
-
 export default function SignupPage() {
   const router = useRouter()
   const [fullName, setFullName] = useState('')
@@ -13,6 +12,8 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showConfirmation, setShowConfirmation] = useState(false)
+
   useEffect(() => {
     document.title = 'Sign up · BrightMinds'
   }, [])
@@ -45,6 +46,12 @@ export default function SignupPage() {
     }
 
     if (data.user) {
+      if (!data.session) {
+        setLoading(false)
+        setShowConfirmation(true)
+        return
+      }
+
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
@@ -65,6 +72,79 @@ export default function SignupPage() {
     }
 
     setLoading(false)
+  }
+
+  if (showConfirmation) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#EEEDFE',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+      }}>
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '16px',
+          padding: '48px 40px',
+          width: '100%',
+          maxWidth: '420px',
+          border: '0.5px solid #e5e3db',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📧</div>
+          <h1 style={{
+            fontSize: '22px',
+            fontWeight: '500',
+            color: '#26215C',
+            marginBottom: '10px',
+          }}>
+            Check your email
+          </h1>
+          <p style={{
+            fontSize: '14px',
+            color: '#888780',
+            marginBottom: '8px',
+            lineHeight: '1.6',
+          }}>
+            We sent a confirmation link to
+          </p>
+          <p style={{
+            fontSize: '14px',
+            fontWeight: '500',
+            color: '#26215C',
+            marginBottom: '20px',
+          }}>
+            {email}
+          </p>
+          <p style={{
+            fontSize: '13px',
+            color: '#888780',
+            marginBottom: '28px',
+            lineHeight: '1.6',
+          }}>
+            Click the link in the email to confirm your account
+            and get started. Check your spam folder if you
+            don't see it.
+          </p>
+          <button
+            onClick={() => router.push('/login')}
+            style={{
+              width: '100%',
+              padding: '12px',
+              background: '#7F77DD',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              cursor: 'pointer',
+            }}>
+            Go to login
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -155,6 +235,7 @@ export default function SignupPage() {
             placeholder="Enter your full name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSignup()}
             style={{
               width: '100%',
               padding: '10px 14px',
@@ -181,6 +262,7 @@ export default function SignupPage() {
             placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSignup()}
             style={{
               width: '100%',
               padding: '10px 14px',
@@ -207,6 +289,7 @@ export default function SignupPage() {
             placeholder="At least 6 characters"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSignup()}
             style={{
               width: '100%',
               padding: '10px 14px',
