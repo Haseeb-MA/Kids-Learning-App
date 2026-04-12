@@ -430,26 +430,46 @@ export default function ParentDashboard() {
                   </div>
                 </div>
                 <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}>
-                  <span style={{
-                    background: child.is_active ? '#E1F5EE' : '#FCEBEB',
-                    color: child.is_active ? '#085041' : '#A32D2D',
-                    padding: '3px 10px',
-                    borderRadius: '20px',
-                    fontSize: '12px',
-                  }}>
-                    {child.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                  <span style={{
-                    fontSize: '12px',
-                    color: '#7F77DD',
-                  }}>
-                    View details →
-                  </span>
-                </div>
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+}}>
+  <span style={{
+    background: child.is_active ? '#E1F5EE' : '#FCEBEB',
+    color: child.is_active ? '#085041' : '#A32D2D',
+    padding: '3px 10px',
+    borderRadius: '20px',
+    fontSize: '12px',
+  }}>
+    {child.is_active ? 'Active' : 'Inactive'}
+  </span>
+  <div style={{ display: 'flex', gap: '8px' }}>
+    <button
+      onClick={(e) => {
+        e.stopPropagation()
+        router.push(`/parent/progress/${child.id}`)
+      }}
+      style={{
+        padding: '4px 10px',
+        background: '#EEEDFE',
+        border: '0.5px solid #AFA9EC',
+        borderRadius: '6px',
+        fontSize: '12px',
+        color: '#534AB7',
+        cursor: 'pointer',
+      }}>
+      📊 Progress
+    </button>
+    <span style={{
+      fontSize: '12px',
+      color: '#7F77DD',
+      display: 'flex',
+      alignItems: 'center',
+    }}>
+      View →
+    </span>
+  </div>
+</div>
               </div>
             ))}
           </div>
