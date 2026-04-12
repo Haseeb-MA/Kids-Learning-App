@@ -130,12 +130,12 @@ export default function ChildDashboard() {
     }
   }
 
-  const games = [
-    { icon: '🧩', name: 'Maths puzzles', bg: '#EAF3DE', color: '#27500A' },
-    { icon: '🔤', name: 'Word scramble', bg: '#E6F1FB', color: '#0C447C' },
-    { icon: '🧠', name: 'Memory match', bg: '#FAEEDA', color: '#633806' },
-    { icon: '⚡', name: 'Quick fire quiz', bg: '#FBEAF0', color: '#72243E' },
-  ]
+ const games = [
+  { icon: '🧩', name: 'Maths puzzles', bg: '#EAF3DE', color: '#27500A', path: '/child/games/maths-puzzles' },
+  { icon: '🔤', name: 'Word scramble', bg: '#E6F1FB', color: '#0C447C', path: '/child/games/word-scramble' },
+  { icon: '🧠', name: 'Memory match', bg: '#FAEEDA', color: '#633806', path: '/child/games/memory-match' },
+  { icon: '⚡', name: 'Quick fire quiz', bg: '#FBEAF0', color: '#72243E', path: '/child/games/quick-fire-quiz' },
+]
 
   const handleLogout = () => {
     localStorage.removeItem('childId')
@@ -456,27 +456,28 @@ onClick={() => router.push('/child/homework-helper')}>
           gap: '12px',
         }}>
           {games.map((game) => (
-            <div
-              key={game.name}
-              style={{
-                background: game.bg,
-                borderRadius: '12px',
-                padding: '18px',
-                cursor: 'pointer',
-                textAlign: 'center',
-              }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>
-                {game.icon}
-              </div>
-              <p style={{
-                fontSize: '13px',
-                fontWeight: '500',
-                color: game.color,
-              }}>
-                {game.name}
-              </p>
-            </div>
-          ))}
+  <div
+    key={game.name}
+    onClick={() => router.push(game.path)}
+    style={{
+      background: game.bg,
+      borderRadius: '12px',
+      padding: '18px',
+      cursor: 'pointer',
+      textAlign: 'center',
+    }}>
+    <div style={{ fontSize: '32px', marginBottom: '8px' }}>
+      {game.icon}
+    </div>
+    <p style={{
+      fontSize: '13px',
+      fontWeight: '500',
+      color: game.color,
+    }}>
+      {game.name}
+    </p>
+  </div>
+))}
         </div>
 
       </div>
