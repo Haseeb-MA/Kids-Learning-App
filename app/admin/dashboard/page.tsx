@@ -23,6 +23,7 @@ interface Stats {
 export default function AdminDashboard() {
   const router = useRouter()
   const [profiles, setProfiles] = useState<Profile[]>([])
+  const [children, setChildren] = useState<any[]>([])
   const [stats, setStats] = useState<Stats>({
     totalParents: 0,
     totalChildren: 0,
@@ -66,7 +67,7 @@ export default function AdminDashboard() {
       .eq('role', 'parent')
       .order('created_at', { ascending: false })
 
-    const { data: children } = await supabase
+    const { data: childrenData } = await supabase
       .from('children')
       .select('*')
       .order('created_at', { ascending: false })
@@ -80,11 +81,12 @@ export default function AdminDashboard() {
       }))
     }
 
-    if (children) {
+    if (childrenData) {
+      setChildren(childrenData)
       setStats(prev => ({
         ...prev,
-        totalChildren: children.length,
-        activeChildren: children.filter((c: any) => c.is_active).length,
+        totalChildren: childrenData.length,
+        activeChildren: childrenData.filter((c: any) => c.is_active).length,
       }))
     }
   }
@@ -155,19 +157,34 @@ export default function AdminDashboard() {
             Admin
           </span>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: '7px 16px',
-            background: 'transparent',
-            border: '0.5px solid #534AB7',
-            borderRadius: '8px',
-            color: '#AFA9EC',
-            fontSize: '13px',
-            cursor: 'pointer',
-          }}>
-          Log out
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => router.push('/admin/content')}
+            style={{
+              padding: '7px 16px',
+              background: '#7F77DD',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}>
+            Content manager
+          </button>
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '7px 16px',
+              background: 'transparent',
+              border: '0.5px solid #534AB7',
+              borderRadius: '8px',
+              color: '#AFA9EC',
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}>
+            Log out
+          </button>
+        </div>
       </nav>
 
       <div style={{ padding: '32px 40px' }}>
@@ -277,6 +294,7 @@ export default function AdminDashboard() {
                   <>
                     <th style={thStyle}>Name</th>
                     <th style={thStyle}>Grade</th>
+                    <th style={thStyle}>Parent</th>
                     <th style={thStyle}>Status</th>
                     <th style={thStyle}>Action</th>
                   </>
@@ -336,16 +354,64 @@ export default function AdminDashboard() {
                   ))
                 )
               ) : (
-                <tr>
-                  <td colSpan={4} style={{
-                    textAlign: 'center',
-                    padding: '40px',
-                    color: '#888780',
-                    fontSize: '14px',
-                  }}>
-                    No children added yet
-                  </td>
-                </tr>
+                children.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{
+                      textAlign: 'center',
+                      padding: '40px',
+                      color: '#888780',
+                      fontSize: '14px',
+                    }}>
+                      No children added yet
+                    </td>
+                  </tr>
+                ) : (
+                  children.map((child, index) => (
+                    <tr key={child.id} style={{
+                      borderTop: index === 0 ? 'none' : '0.5px solid #e5e3db',
+                    }}>
+                      <td style={tdStyle}>{child.full_name}</td>
+                      <td style={tdStyle}>
+                        <span style={{
+                          background: '#EEEDFE',
+                          color: '#534AB7',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                        }}>
+                          Grade {child.grade}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>{child.parent_id}</td>
+                      <td style={tdStyle}>
+                        <span style={{
+                          background: child.is_active ? '#E1F5EE' : '#FCEBEB',
+                          color: child.is_active ? '#085041' : '#A32D2D',
+                          padding: '3px 10px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                        }}>
+                          {child.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>
+                        <button
+                          onClick={() => toggleActive(child.id, child.is_active, 'children')}
+                          style={{
+                            padding: '5px 12px',
+                            border: '0.5px solid #D3D1C7',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            background: 'transparent',
+                            cursor: 'pointer',
+                            color: child.is_active ? '#A32D2D' : '#085041',
+                          }}>
+                          {child.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )
               )}
             </tbody>
           </table>

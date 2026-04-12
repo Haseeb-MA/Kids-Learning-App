@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -42,49 +42,56 @@ export default function ChildLoginPage() {
     setStep('pin')
   }
 
-  const handlePinLogin = () => {
-    if (pin.length !== 4) {
-      setError('Please enter your 4 digit PIN')
-      return
-    }
-
-    if (pin !== selectedChild?.pin) {
-      setError('Wrong PIN, try again')
-      setPin('')
-      return
-    }
-
-    localStorage.setItem('childId', selectedChild.id)
-    localStorage.setItem('childName', selectedChild.full_name)
-    localStorage.setItem('childGrade', selectedChild.grade.toString())
+  const loginChild = useCallback((child: Child, enteredPin: string) => {
+    localStorage.setItem('childId', child.id)
+    localStorage.setItem('childName', child.full_name)
+    localStorage.setItem('childGrade', child.grade.toString())
     router.push('/child/dashboard')
-  }
+  }, [router])
 
-  const handlePinPress = (digit: string) => {
-    if (pin.length < 4) {
-      const newPin = pin + digit
-      setPin(newPin)
+  const handlePinPress = useCallback((digit: string) => {
+    if (!selectedChild) return
+
+    setPin(prev => {
+      if (prev.length >= 4) return prev
+      const newPin = prev + digit
       setError('')
+
       if (newPin.length === 4) {
         setTimeout(() => {
-          if (newPin !== selectedChild?.pin) {
+          if (newPin !== selectedChild.pin) {
             setError('Wrong PIN, try again')
             setPin('')
           } else {
-            localStorage.setItem('childId', selectedChild.id)
-            localStorage.setItem('childName', selectedChild.full_name)
-            localStorage.setItem('childGrade', selectedChild.grade.toString())
-            router.push('/child/dashboard')
+            loginChild(selectedChild, newPin)
           }
         }, 300)
       }
-    }
-  }
 
-  const handleDelete = () => {
-    setPin(pin.slice(0, -1))
+      return newPin
+    })
+  }, [selectedChild, loginChild])
+
+  const handleDelete = useCallback(() => {
+    setPin(prev => prev.slice(0, -1))
     setError('')
-  }
+  }, [])
+
+  useEffect(() => {
+    if (step !== 'pin') return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') {
+        handlePinPress(e.key)
+      }
+      if (e.key === 'Backspace') {
+        handleDelete()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [step, handlePinPress, handleDelete])
 
   if (loading) {
     return (
@@ -138,7 +145,7 @@ export default function ChildLoginPage() {
           color: '#26215C',
           marginBottom: '6px',
         }}>
-          {step === 'select' ? 'Who are you?' : `Hi ${selectedChild?.full_name}!`}
+          {step === 'select' ? 'Who are you?' : `Hi ${selectedChild?.full_name.split(' ')[0]}!`}
         </h1>
         <p style={{
           fontSize: '14px',
@@ -249,6 +256,14 @@ export default function ChildLoginPage() {
                 {error}
               </div>
             )}
+
+            <p style={{
+              fontSize: '12px',
+              color: '#888780',
+              marginBottom: '16px',
+            }}>
+              Use keyboard numbers or tap below
+            </p>
 
             <div style={{
               display: 'grid',

@@ -42,6 +42,7 @@ export default function ChildDetail({ params }: { params: Promise<{ id: string }
   const [pin, setPin] = useState('')
   const [savingPin, setSavingPin] = useState(false)
   const [pinSaved, setPinSaved] = useState(false)
+  const [pinReset, setPinReset] = useState(false)
   useEffect(() => {
     loadAll()
   }, [])
@@ -157,6 +158,20 @@ export default function ChildDetail({ params }: { params: Promise<{ id: string }
 
     await loadAssigned()
   }
+  
+  const handleResetPin = async () => {
+  const { error } = await supabase
+    .from('children')
+    .update({ pin: null })
+    .eq('id', id)
+
+  if (!error) {
+    setPin('')
+    setPinSaved(false)
+    setPinReset(true)
+    setTimeout(() => setPinReset(false), 3000)
+  }
+}
 const handleSavePin = async () => {
   setSavingPin(true)
   setPinSaved(false)
@@ -512,10 +527,40 @@ const handleSavePin = async () => {
   }}>
     Set a 4 digit PIN your child will use to log in
   </p>
+
+  {pinReset && (
+    <div style={{
+      background: '#FAEEDA',
+      border: '0.5px solid #FAC775',
+      borderRadius: '8px',
+      padding: '10px 14px',
+      marginBottom: '16px',
+      fontSize: '13px',
+      color: '#633806',
+    }}>
+      PIN has been reset. Please set a new one.
+    </div>
+  )}
+
+  {pinSaved && (
+    <div style={{
+      background: '#E1F5EE',
+      border: '0.5px solid #9FE1CB',
+      borderRadius: '8px',
+      padding: '10px 14px',
+      marginBottom: '16px',
+      fontSize: '13px',
+      color: '#085041',
+    }}>
+      PIN saved successfully
+    </div>
+  )}
+
   <div style={{
     display: 'flex',
     gap: '10px',
     alignItems: 'center',
+    flexWrap: 'wrap',
   }}>
     <input
       type="number"
@@ -549,17 +594,19 @@ const handleSavePin = async () => {
       }}>
       {savingPin ? 'Saving...' : 'Save PIN'}
     </button>
-    {pinSaved && (
-      <span style={{
-        fontSize: '13px',
-        color: '#085041',
-        background: '#E1F5EE',
-        padding: '6px 12px',
+    <button
+      onClick={handleResetPin}
+      style={{
+        padding: '10px 20px',
+        background: 'transparent',
+        color: '#A32D2D',
+        border: '0.5px solid #F09595',
         borderRadius: '8px',
+        fontSize: '14px',
+        cursor: 'pointer',
       }}>
-        PIN saved successfully
-      </span>
-    )}
+      Reset PIN
+    </button>
   </div>
 </div>
         <h2 style={{
