@@ -6,6 +6,11 @@ import Games from '@/components/Games'
 import Features from '@/components/Features'
 import Footer from '@/components/Footer'
 
+export const metadata = {
+  title: 'BrightMinds · Learning made fun',
+  description: 'A learning platform for Grade 1 to Grade 10 students',
+}
+
 export default function Home() {
   return (
     <main>

@@ -61,6 +61,7 @@ export default function QuickFireQuiz() {
   const [childGrade, setChildGrade] = useState(1)
 
   useEffect(() => {
+    document.title = 'Quick fire quiz · BrightMinds'
     const grade = parseInt(localStorage.getItem('childGrade') || '1')
     setChildGrade(grade)
     setQuestions(getQuestionsForGrade(grade))

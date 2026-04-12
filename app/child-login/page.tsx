@@ -21,6 +21,7 @@ export default function ChildLoginPage() {
   const [step, setStep] = useState<'select' | 'pin'>('select')
 
   useEffect(() => {
+    document.title = 'Student login · BrightMinds'
     loadChildren()
   }, [])
 
@@ -42,7 +43,7 @@ export default function ChildLoginPage() {
     setStep('pin')
   }
 
-  const loginChild = useCallback((child: Child, enteredPin: string) => {
+  const loginChild = useCallback((child: Child) => {
     localStorage.setItem('childId', child.id)
     localStorage.setItem('childName', child.full_name)
     localStorage.setItem('childGrade', child.grade.toString())
@@ -63,7 +64,7 @@ export default function ChildLoginPage() {
             setError('Wrong PIN, try again')
             setPin('')
           } else {
-            loginChild(selectedChild, newPin)
+            loginChild(selectedChild)
           }
         }, 300)
       }
@@ -145,7 +146,9 @@ export default function ChildLoginPage() {
           color: '#26215C',
           marginBottom: '6px',
         }}>
-          {step === 'select' ? 'Who are you?' : `Hi ${selectedChild?.full_name.split(' ')[0]}!`}
+          {step === 'select'
+            ? 'Who are you?'
+            : `Hi ${selectedChild?.full_name.split(' ')[0]}!`}
         </h1>
         <p style={{
           fontSize: '14px',

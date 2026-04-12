@@ -1,9 +1,11 @@
+
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+
 
 export default function LoginPage() {
   const router = useRouter()
@@ -11,11 +13,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  useEffect(() => {
+    document.title = 'Log in · BrightMinds'
+  }, [])
 
   const handleLogin = async () => {
     setLoading(true)
     setError('')
 
+    
     if (!email || !password) {
       setError('Please fill in all fields')
       setLoading(false)

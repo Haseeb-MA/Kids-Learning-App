@@ -39,6 +39,7 @@ export default function WordScramble() {
   const [childGrade, setChildGrade] = useState('1')
 
   useEffect(() => {
+    document.title = 'Word-Scramble · BrightMinds'
     const grade = localStorage.getItem('childGrade') || '1'
     setChildGrade(grade)
     initGame(grade)

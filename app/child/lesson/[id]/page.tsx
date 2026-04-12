@@ -36,6 +36,8 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
   const [loading, setLoading] = useState(true)
   const [childId, setChildId] = useState('')
   const [childName, setChildName] = useState('')
+const [explanation, setExplanation] = useState<string | null>(null)
+const [loadingExplanation, setLoadingExplanation] = useState(false)
 
   useEffect(() => {
     const storedId = localStorage.getItem('childId')
@@ -84,16 +86,46 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
       })
   }
 
-  const handleNext = () => {
-    if (currentQ < quizzes.length - 1) {
-      setCurrentQ(prev => prev + 1)
-      setSelected(null)
-      setAnswered(false)
-    } else {
-      checkAndAwardBadge()
-      setStage('result')
-    }
+ const handleNext = () => {
+  if (currentQ < quizzes.length - 1) {
+    setCurrentQ(prev => prev + 1)
+    setSelected(null)
+    setAnswered(false)
+    setExplanation(null)
+    setLoadingExplanation(false)
+  } else {
+    checkAndAwardBadge()
+    setStage('result')
   }
+}
+const handleExplain = async (quiz: Quiz) => {
+  setLoadingExplanation(true)
+  setExplanation(null)
+
+  try {
+    const grade = localStorage.getItem('childGrade') || '1'
+
+    const response = await fetch('/api/explain-question', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: quiz.question,
+        correctAnswer: quiz[`option_${quiz.correct_answer}` as keyof Quiz],
+        grade,
+        lessonTitle: lesson?.title,
+      }),
+    })
+
+    const data = await response.json()
+    if (data.explanation) {
+      setExplanation(data.explanation)
+    }
+  } catch (err) {
+    console.error('Explain error:', err)
+  }
+
+  setLoadingExplanation(false)
+}
 
   const checkAndAwardBadge = async () => {
     const percentage = Math.round((score / quizzes.length) * 100)
@@ -323,24 +355,81 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
               ))}
             </div>
 
-            {answered && (
-              <div style={{
-                background: selected === quizzes[currentQ].correct_answer
-                  ? '#E1F5EE' : '#FCEBEB',
-                border: `0.5px solid ${selected === quizzes[currentQ].correct_answer
-                  ? '#9FE1CB' : '#F09595'}`,
-                borderRadius: '10px',
-                padding: '14px 18px',
-                marginBottom: '16px',
-                fontSize: '14px',
-                color: selected === quizzes[currentQ].correct_answer
-                  ? '#085041' : '#A32D2D',
-              }}>
-                {selected === quizzes[currentQ].correct_answer
-                  ? '✓ Correct! Well done!'
-                  : `✗ Not quite. The correct answer is ${quizzes[currentQ][`option_${quizzes[currentQ].correct_answer}` as keyof Quiz]}`}
-              </div>
-            )}
+          {answered && (
+  <div style={{ marginBottom: '16px' }}>
+    <div style={{
+      background: selected === quizzes[currentQ].correct_answer
+        ? '#E1F5EE' : '#FCEBEB',
+      border: `0.5px solid ${selected === quizzes[currentQ].correct_answer
+        ? '#9FE1CB' : '#F09595'}`,
+      borderRadius: '10px',
+      padding: '14px 18px',
+      marginBottom: '10px',
+      fontSize: '14px',
+      color: selected === quizzes[currentQ].correct_answer
+        ? '#085041' : '#A32D2D',
+    }}>
+      {selected === quizzes[currentQ].correct_answer
+        ? '✓ Correct! Well done!'
+        : `✗ Not quite. The correct answer is ${quizzes[currentQ][`option_${quizzes[currentQ].correct_answer}` as keyof Quiz]}`}
+    </div>
+
+    {!explanation && !loadingExplanation && (
+      <button
+        onClick={() => handleExplain(quizzes[currentQ])}
+        style={{
+          width: '100%',
+          padding: '10px',
+          background: '#EEEDFE',
+          border: '0.5px solid #AFA9EC',
+          borderRadius: '10px',
+          fontSize: '13px',
+          color: '#534AB7',
+          cursor: 'pointer',
+        }}>
+        🤖 Explain this with an example
+      </button>
+    )}
+
+    {loadingExplanation && (
+      <div style={{
+        padding: '14px',
+        background: '#EEEDFE',
+        borderRadius: '10px',
+        fontSize: '13px',
+        color: '#534AB7',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+      }}>
+        <span>🤖</span>
+        <span>Thinking of a good example for you...</span>
+      </div>
+    )}
+
+    {explanation && (
+      <div style={{
+        padding: '16px',
+        background: '#EEEDFE',
+        border: '0.5px solid #AFA9EC',
+        borderRadius: '10px',
+        fontSize: '14px',
+        color: '#26215C',
+        lineHeight: '1.7',
+      }}>
+        <p style={{
+          fontSize: '12px',
+          color: '#534AB7',
+          marginBottom: '8px',
+          fontWeight: '500',
+        }}>
+          🤖 Here's an explanation:
+        </p>
+        {explanation}
+      </div>
+    )}
+  </div>
+)}
 
             {answered && (
               <button
@@ -416,12 +505,14 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
             }}>
               <button
                 onClick={() => {
-                  setStage('lesson')
-                  setCurrentQ(0)
-                  setSelected(null)
-                  setAnswered(false)
-                  setScore(0)
-                }}
+  setStage('lesson')
+  setCurrentQ(0)
+  setSelected(null)
+  setAnswered(false)
+  setScore(0)
+  setExplanation(null)
+  setLoadingExplanation(false)
+}}
                 style={{
                   width: '100%',
                   padding: '14px',

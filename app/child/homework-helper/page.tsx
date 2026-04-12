@@ -8,6 +8,12 @@ interface Message {
   content: string
 }
 
+interface ChildInfo {
+  id: string
+  name: string
+  grade: string
+}
+
 const SUBJECTS = [
   'Mathematics',
   'English',
@@ -17,8 +23,7 @@ const SUBJECTS = [
 
 export default function HomeworkHelper() {
   const router = useRouter()
-  const [childName, setChildName] = useState('')
-  const [childGrade, setChildGrade] = useState('')
+  const [childInfo, setChildInfo] = useState<ChildInfo | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -27,6 +32,8 @@ export default function HomeworkHelper() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    document.title = 'Homework helper · BrightMinds'
+
     const storedId = localStorage.getItem('childId')
     const storedName = localStorage.getItem('childName')
     const storedGrade = localStorage.getItem('childGrade')
@@ -36,9 +43,13 @@ export default function HomeworkHelper() {
       return
     }
 
-    setChildName(storedName || '')
-    setChildGrade(storedGrade || '')
+    const info = {
+      id: storedId,
+      name: storedName || '',
+      grade: storedGrade || '',
+    }
 
+    setChildInfo(info)
     setMessages([{
       role: 'assistant',
       content: `Hi ${storedName?.split(' ')[0]}! 👋 I am your homework helper. I won't give you the answers directly, but I will give you hints and help you figure it out yourself — that's how real learning works! What are you working on today?`,
@@ -49,60 +60,60 @@ export default function HomeworkHelper() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-const handleSend = async () => {
-  if (!input.trim() || loading) return
+  const handleSend = async () => {
+    if (!input.trim() || loading) return
 
-  const userMessage = input.trim()
-  setInput('')
-  setError('')
+    const userMessage = input.trim()
+    setInput('')
+    setError('')
 
-  const newMessages = [
-    ...messages,
-    { role: 'user' as const, content: userMessage },
-  ]
-  setMessages(newMessages)
-  setLoading(true)
+    const newMessages = [
+      ...messages,
+      { role: 'user' as const, content: userMessage },
+    ]
+    setMessages(newMessages)
+    setLoading(true)
 
-  try {
-    const response = await fetch('/api/homework-helper', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        question: userMessage,
-        grade: childGrade,
-        subject,
-        messages: messages,
-      }),
-    })
+    try {
+      const response = await fetch('/api/homework-helper', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: userMessage,
+          grade: childInfo?.grade,
+          subject,
+          messages: messages,
+        }),
+      })
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      console.error('API error:', errorData)
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('API error:', errorData)
+        setError('Something went wrong. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      const data = await response.json()
+
+      if (data.error) {
+        console.error('Data error:', data.error)
+        setError('Something went wrong. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      setMessages([
+        ...newMessages,
+        { role: 'assistant' as const, content: data.reply },
+      ])
+    } catch (err) {
+      console.error('Fetch error:', err)
       setError('Something went wrong. Please try again.')
-      setLoading(false)
-      return
     }
 
-    const data = await response.json()
-
-    if (data.error) {
-      console.error('Data error:', data.error)
-      setError('Something went wrong. Please try again.')
-      setLoading(false)
-      return
-    }
-
-    setMessages([
-      ...newMessages,
-      { role: 'assistant' as const, content: data.reply },
-    ])
-  } catch (err) {
-    console.error('Fetch error:', err)
-    setError('Something went wrong. Please try again.')
+    setLoading(false)
   }
-
-  setLoading(false)
-}
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -299,9 +310,7 @@ const handleSend = async () => {
             {quickPrompts.map((prompt) => (
               <button
                 key={prompt}
-                onClick={() => {
-                  setInput(prompt)
-                }}
+                onClick={() => setInput(prompt)}
                 style={{
                   padding: '5px 12px',
                   background: '#EEEDFE',

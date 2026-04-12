@@ -57,6 +57,7 @@ export default function MathsPuzzles() {
   const [childGrade, setChildGrade] = useState(1)
 
   useEffect(() => {
+ document.title = 'Maths puzzles · BrightMinds'
     const grade = parseInt(localStorage.getItem('childGrade') || '1')
     setChildGrade(grade)
     setPuzzles(generatePuzzles(grade))

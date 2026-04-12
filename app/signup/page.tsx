@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+
 
 export default function SignupPage() {
   const router = useRouter()
@@ -12,6 +13,9 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  useEffect(() => {
+    document.title = 'Sign up · BrightMinds'
+  }, [])
 
   const handleSignup = async () => {
     setLoading(true)

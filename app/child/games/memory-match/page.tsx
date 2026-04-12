@@ -36,6 +36,7 @@ export default function MemoryMatch() {
   const [timeTaken, setTimeTaken] = useState(0)
 
   useEffect(() => {
+    document.title = 'Memory match · BrightMinds'
     const grade = localStorage.getItem('childGrade') || '1'
     setChildGrade(grade)
     initGame(grade)
