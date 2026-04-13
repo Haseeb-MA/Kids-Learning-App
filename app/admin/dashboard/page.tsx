@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -20,11 +20,21 @@ interface Stats {
   activeChildren: number
 }
 
+interface Message {
+  id: string
+  name: string
+  email: string
+  subject: string
+  message: string
+  is_read: boolean
+  created_at: string
+}
+
 export default function AdminDashboard() {
   const router = useRouter()
-  const [messages, setMessages] = useState<any[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [children, setChildren] = useState<any[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
   const [stats, setStats] = useState<Stats>({
     totalParents: 0,
     totalChildren: 0,
@@ -33,30 +43,28 @@ export default function AdminDashboard() {
   })
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'parents' | 'children' | 'messages'>('parents')
+  const [expandedMessage, setExpandedMessage] = useState<string | null>(null)
 
   useEffect(() => {
+    document.title = 'Admin dashboard · BrightMinds'
     checkAdminAndLoad()
   }, [])
 
   const checkAdminAndLoad = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-
     if (!user) {
       router.push('/login')
       return
     }
-
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
-
     if (profile?.role !== 'admin') {
       router.push('/login')
       return
     }
-
     await loadData()
     setLoading(false)
   }
@@ -68,15 +76,13 @@ export default function AdminDashboard() {
       .eq('role', 'parent')
       .order('created_at', { ascending: false })
 
-      const { data: messagesData } = await supabase
-  .from('contact_messages')
-  .select('*')
-  .order('created_at', { ascending: false })
-
-if (messagesData) setMessages(messagesData)
-
     const { data: childrenData } = await supabase
       .from('children')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    const { data: messagesData } = await supabase
+      .from('contact_messages')
       .select('*')
       .order('created_at', { ascending: false })
 
@@ -97,31 +103,361 @@ if (messagesData) setMessages(messagesData)
         activeChildren: childrenData.filter((c: any) => c.is_active).length,
       }))
     }
+
+    if (messagesData) setMessages(messagesData)
   }
 
   const toggleActive = async (id: string, currentStatus: boolean, table: string) => {
-    const { error } = await supabase
+    await supabase
       .from(table)
       .update({ is_active: !currentStatus })
       .eq('id', id)
-
-    if (!error) {
-      await loadData()
-    }
+    await loadData()
   }
 
   const handleReadMessage = async (id: string, currentStatus: boolean) => {
-  await supabase
-    .from('contact_messages')
-    .update({ is_read: !currentStatus })
-    .eq('id', id)
-  await loadData()
-}
+    await supabase
+      .from('contact_messages')
+      .update({ is_read: !currentStatus })
+      .eq('id', id)
+    await loadData()
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
   }
+
+  const unreadCount = messages.filter(m => !m.is_read).length
+
+  const renderParentsTable = () => (
+    <>
+      <thead>
+        <tr style={{ background: '#f5f4f0' }}>
+          <th style={thStyle}>Name</th>
+          <th style={thStyle}>Email</th>
+          <th style={thStyle}>Joined</th>
+          <th style={thStyle}>Status</th>
+          <th style={thStyle}>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {profiles.length === 0 ? (
+          <tr>
+            <td colSpan={5} style={{
+              textAlign: 'center',
+              padding: '40px',
+              color: '#888780',
+              fontSize: '14px',
+            }}>
+              No parents registered yet
+            </td>
+          </tr>
+        ) : profiles.map((profile, index) => (
+          <tr key={profile.id} style={{
+            borderTop: index === 0 ? 'none' : '0.5px solid #e5e3db',
+          }}>
+            <td style={tdStyle}>{profile.full_name || '—'}</td>
+            <td style={tdStyle}>{profile.email}</td>
+            <td style={tdStyle}>
+              {new Date(profile.created_at).toLocaleDateString()}
+            </td>
+            <td style={tdStyle}>
+              <span style={{
+                background: profile.is_active ? '#E1F5EE' : '#FCEBEB',
+                color: profile.is_active ? '#085041' : '#A32D2D',
+                padding: '3px 10px',
+                borderRadius: '20px',
+                fontSize: '12px',
+              }}>
+                {profile.is_active ? 'Active' : 'Inactive'}
+              </span>
+            </td>
+            <td style={tdStyle}>
+              <button
+                onClick={() => toggleActive(profile.id, profile.is_active, 'profiles')}
+                style={{
+                  padding: '5px 12px',
+                  border: '0.5px solid #D3D1C7',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  color: profile.is_active ? '#A32D2D' : '#085041',
+                }}>
+                {profile.is_active ? 'Deactivate' : 'Activate'}
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </>
+  )
+
+  const renderChildrenTable = () => (
+    <>
+      <thead>
+        <tr style={{ background: '#f5f4f0' }}>
+          <th style={thStyle}>Name</th>
+          <th style={thStyle}>Grade</th>
+          <th style={thStyle}>Parent ID</th>
+          <th style={thStyle}>Status</th>
+          <th style={thStyle}>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {children.length === 0 ? (
+          <tr>
+            <td colSpan={5} style={{
+              textAlign: 'center',
+              padding: '40px',
+              color: '#888780',
+              fontSize: '14px',
+            }}>
+              No children added yet
+            </td>
+          </tr>
+        ) : children.map((child, index) => (
+          <tr key={child.id} style={{
+            borderTop: index === 0 ? 'none' : '0.5px solid #e5e3db',
+          }}>
+            <td style={tdStyle}>{child.full_name}</td>
+            <td style={tdStyle}>
+              <span style={{
+                background: '#EEEDFE',
+                color: '#534AB7',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                fontSize: '12px',
+              }}>
+                Grade {child.grade}
+              </span>
+            </td>
+            <td style={tdStyle} title={child.parent_id}>
+              {child.parent_id.substring(0, 8)}...
+            </td>
+            <td style={tdStyle}>
+              <span style={{
+                background: child.is_active ? '#E1F5EE' : '#FCEBEB',
+                color: child.is_active ? '#085041' : '#A32D2D',
+                padding: '3px 10px',
+                borderRadius: '20px',
+                fontSize: '12px',
+              }}>
+                {child.is_active ? 'Active' : 'Inactive'}
+              </span>
+            </td>
+            <td style={tdStyle}>
+              <button
+                onClick={() => toggleActive(child.id, child.is_active, 'children')}
+                style={{
+                  padding: '5px 12px',
+                  border: '0.5px solid #D3D1C7',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  color: child.is_active ? '#A32D2D' : '#085041',
+                }}>
+                {child.is_active ? 'Deactivate' : 'Activate'}
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </>
+  )
+
+  const renderMessagesTable = () => (
+    <>
+      <thead>
+        <tr style={{ background: '#f5f4f0' }}>
+          <th style={thStyle}>Name</th>
+          <th style={thStyle}>Email</th>
+          <th style={thStyle}>Subject</th>
+          <th style={thStyle}>Date</th>
+          <th style={thStyle}>Status</th>
+          <th style={thStyle}>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {messages.length === 0 ? (
+          <tr>
+            <td colSpan={6} style={{
+              textAlign: 'center',
+              padding: '40px',
+              color: '#888780',
+              fontSize: '14px',
+            }}>
+              No messages yet
+            </td>
+          </tr>
+        ) : messages.map((msg, index) => (
+          <React.Fragment key={msg.id}>
+            <tr
+              onClick={() => setExpandedMessage(
+                expandedMessage === msg.id ? null : msg.id
+              )}
+              style={{
+                borderTop: index === 0 ? 'none' : '0.5px solid #e5e3db',
+                background: msg.is_read ? '#ffffff' : '#EEEDFE',
+                cursor: 'pointer',
+              }}>
+              <td style={tdStyle}>{msg.name}</td>
+              <td style={tdStyle}>{msg.email}</td>
+              <td style={tdStyle}>{msg.subject}</td>
+              <td style={tdStyle}>
+                {new Date(msg.created_at).toLocaleDateString()}
+              </td>
+              <td style={tdStyle}>
+                <span style={{
+                  background: msg.is_read ? '#F1EFE8' : '#EEEDFE',
+                  color: msg.is_read ? '#888780' : '#534AB7',
+                  padding: '3px 10px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                }}>
+                  {msg.is_read ? 'Read' : 'New'}
+                </span>
+              </td>
+              <td style={tdStyle}>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setExpandedMessage(
+                        expandedMessage === msg.id ? null : msg.id
+                      )
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      border: '0.5px solid #AFA9EC',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      background: expandedMessage === msg.id
+                        ? '#EEEDFE' : 'transparent',
+                      cursor: 'pointer',
+                      color: '#534AB7',
+                    }}>
+                    {expandedMessage === msg.id ? 'Hide' : 'Read'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleReadMessage(msg.id, msg.is_read)
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      border: '0.5px solid #D3D1C7',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      color: msg.is_read ? '#534AB7' : '#085041',
+                    }}>
+                    {msg.is_read ? 'Unread' : 'Mark read'}
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {expandedMessage === msg.id && (
+              <tr style={{
+                background: '#f5f4f0',
+                borderTop: '0.5px solid #e5e3db',
+              }}>
+                <td colSpan={6} style={{ padding: '16px 20px' }}>
+                  <div style={{
+                    background: '#ffffff',
+                    border: '0.5px solid #e5e3db',
+                    borderRadius: '10px',
+                    padding: '16px 20px',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginBottom: '12px',
+                      flexWrap: 'wrap' as const,
+                      gap: '8px',
+                    }}>
+                      <div>
+                        <p style={{
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          color: '#2C2C2A',
+                          margin: '0 0 2px',
+                        }}>
+                          From: {msg.name}
+                        </p>
+                        <p style={{
+                          fontSize: '12px',
+                          color: '#888780',
+                          margin: 0,
+                        }}>
+                          {msg.email}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: 'right' as const }}>
+                        <p style={{
+                          fontSize: '12px',
+                          color: '#888780',
+                          margin: '0 0 2px',
+                        }}>
+                          {new Date(msg.created_at).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </p>
+                        <p style={{
+                          fontSize: '12px',
+                          color: '#534AB7',
+                          margin: 0,
+                        }}>
+                          {msg.subject}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{
+                      borderTop: '0.5px solid #e5e3db',
+                      paddingTop: '12px',
+                      fontSize: '14px',
+                      color: '#444441',
+                      lineHeight: '1.7',
+                      whiteSpace: 'pre-wrap' as const,
+                    }}>
+                      {msg.message}
+                    </div>
+                    <div style={{
+                      marginTop: '12px',
+                      paddingTop: '12px',
+                      borderTop: '0.5px solid #e5e3db',
+                    }}>
+                      
+                        <button
+  onClick={() => {
+    window.location.href = 'mailto:' + msg.email + '?subject=Re: ' + msg.subject
+  }}
+  style={{
+    padding: '7px 16px',
+    background: '#7F77DD',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '13px',
+    cursor: 'pointer',
+  }}>
+  Reply via email
+</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </React.Fragment>
+        ))}
+      </tbody>
+    </>
+  )
 
   if (loading) {
     return (
@@ -267,36 +603,36 @@ if (messagesData) setMessages(messagesData)
           width: 'fit-content',
         }}>
           {(['parents', 'children', 'messages'] as const).map((tab) => (
-  <button
-    key={tab}
-    onClick={() => setActiveTab(tab)}
-    style={{
-      padding: '8px 20px',
-      borderRadius: '8px',
-      border: 'none',
-      fontSize: '13px',
-      cursor: 'pointer',
-      background: activeTab === tab ? '#ffffff' : 'transparent',
-      color: activeTab === tab ? '#26215C' : '#888780',
-      fontWeight: activeTab === tab ? '500' : '400',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-    }}>
-    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-    {tab === 'messages' && messages.filter(m => !m.is_read).length > 0 && (
-      <span style={{
-        background: '#7F77DD',
-        color: '#fff',
-        fontSize: '10px',
-        padding: '1px 6px',
-        borderRadius: '10px',
-      }}>
-        {messages.filter(m => !m.is_read).length}
-      </span>
-    )}
-  </button>
-))}
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: '8px 20px',
+                borderRadius: '8px',
+                border: 'none',
+                fontSize: '13px',
+                cursor: 'pointer',
+                background: activeTab === tab ? '#ffffff' : 'transparent',
+                color: activeTab === tab ? '#26215C' : '#888780',
+                fontWeight: activeTab === tab ? '500' : '400',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'messages' && unreadCount > 0 && (
+                <span style={{
+                  background: '#7F77DD',
+                  color: '#fff',
+                  fontSize: '10px',
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                }}>
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         <div style={{
@@ -310,203 +646,9 @@ if (messagesData) setMessages(messagesData)
             borderCollapse: 'collapse',
             fontSize: '14px',
           }}>
-            <thead>
-              <tr style={{ background: '#f5f4f0' }}>
-                {activeTab === 'parents' ? (
-  <>
-    <th style={thStyle}>Name</th>
-    <th style={thStyle}>Email</th>
-    <th style={thStyle}>Joined</th>
-    <th style={thStyle}>Status</th>
-    <th style={thStyle}>Action</th>
-  </>
-) : activeTab === 'children' ? (
-  <>
-    <th style={thStyle}>Name</th>
-    <th style={thStyle}>Grade</th>
-    <th style={thStyle}>Parent</th>
-    <th style={thStyle}>Status</th>
-    <th style={thStyle}>Action</th>
-  </>
-) : (
-  <>
-    <th style={thStyle}>Name</th>
-    <th style={thStyle}>Email</th>
-    <th style={thStyle}>Subject</th>
-    <th style={thStyle}>Date</th>
-    <th style={thStyle}>Status</th>
-    <th style={thStyle}>Action</th>
-  </>
-)}
-              </tr>
-            </thead>
-            <tbody>
-              {activeTab === 'parents' ? (
-                profiles.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{
-                      textAlign: 'center',
-                      padding: '40px',
-                      color: '#888780',
-                      fontSize: '14px',
-                    }}>
-                      No parents registered yet
-                    </td>
-                  </tr>
-                ) : (
-                  profiles.map((profile, index) => (
-                    <tr key={profile.id} style={{
-                      borderTop: index === 0 ? 'none' : '0.5px solid #e5e3db',
-                    }}>
-                      <td style={tdStyle}>{profile.full_name || '—'}</td>
-                      <td style={tdStyle}>{profile.email}</td>
-                      <td style={tdStyle}>
-                        {new Date(profile.created_at).toLocaleDateString()}
-                      </td>
-                      <td style={tdStyle}>
-                        <span style={{
-                          background: profile.is_active ? '#E1F5EE' : '#FCEBEB',
-                          color: profile.is_active ? '#085041' : '#A32D2D',
-                          padding: '3px 10px',
-                          borderRadius: '20px',
-                          fontSize: '12px',
-                        }}>
-                          {profile.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td style={tdStyle}>
-                        <button
-                          onClick={() => toggleActive(profile.id, profile.is_active, 'profiles')}
-                          style={{
-                            padding: '5px 12px',
-                            border: '0.5px solid #D3D1C7',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            background: 'transparent',
-                            cursor: 'pointer',
-                            color: profile.is_active ? '#A32D2D' : '#085041',
-                          }}>
-                          {profile.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )
-              ) : (
-                children.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{
-                      textAlign: 'center',
-                      padding: '40px',
-                      color: '#888780',
-                      fontSize: '14px',
-                    }}>
-                      No children added yet
-                    </td>
-                  </tr>
-                ) : (
-                  children.map((child, index) => (
-                    <tr key={child.id} style={{
-                      borderTop: index === 0 ? 'none' : '0.5px solid #e5e3db',
-                    }}>
-                      <td style={tdStyle}>{child.full_name}</td>
-                      <td style={tdStyle}>
-                        <span style={{
-                          background: '#EEEDFE',
-                          color: '#534AB7',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                        }}>
-                          Grade {child.grade}
-                        </span>
-                      </td>
-                      <td style={tdStyle}>{child.parent_id}</td>
-                      <td style={tdStyle}>
-                        <span style={{
-                          background: child.is_active ? '#E1F5EE' : '#FCEBEB',
-                          color: child.is_active ? '#085041' : '#A32D2D',
-                          padding: '3px 10px',
-                          borderRadius: '20px',
-                          fontSize: '12px',
-                        }}>
-                          {child.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td style={tdStyle}>
-                        <button
-                          onClick={() => toggleActive(child.id, child.is_active, 'children')}
-                          style={{
-                            padding: '5px 12px',
-                            border: '0.5px solid #D3D1C7',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            background: 'transparent',
-                            cursor: 'pointer',
-                            color: child.is_active ? '#A32D2D' : '#085041',
-                          }}>
-                          {child.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
-                      </td>
-                    </tr>
-                    ) : (
-  messages.length === 0 ? (
-    <tr>
-      <td colSpan={6} style={{
-        textAlign: 'center',
-        padding: '40px',
-        color: '#888780',
-        fontSize: '14px',
-      }}>
-        No messages yet
-      </td>
-    </tr>
-  ) : (
-    messages.map((msg, index) => (
-      <tr key={msg.id} style={{
-        borderTop: index === 0 ? 'none' : '0.5px solid #e5e3db',
-        background: msg.is_read ? '#ffffff' : '#EEEDFE',
-      }}>
-        <td style={tdStyle}>{msg.name}</td>
-        <td style={tdStyle}>{msg.email}</td>
-        <td style={tdStyle}>{msg.subject}</td>
-        <td style={tdStyle}>
-          {new Date(msg.created_at).toLocaleDateString()}
-        </td>
-        <td style={tdStyle}>
-          <span style={{
-            background: msg.is_read ? '#F1EFE8' : '#EEEDFE',
-            color: msg.is_read ? '#888780' : '#534AB7',
-            padding: '3px 10px',
-            borderRadius: '20px',
-            fontSize: '12px',
-          }}>
-            {msg.is_read ? 'Read' : 'New'}
-          </span>
-        </td>
-        <td style={tdStyle}>
-          <button
-            onClick={() => handleReadMessage(msg.id, msg.is_read)}
-            style={{
-              padding: '5px 12px',
-              border: '0.5px solid #D3D1C7',
-              borderRadius: '6px',
-              fontSize: '12px',
-              background: 'transparent',
-              cursor: 'pointer',
-              color: msg.is_read ? '#534AB7' : '#085041',
-            }}>
-            {msg.is_read ? 'Mark unread' : 'Mark read'}
-          </button>
-        </td>
-      </tr>
-    ))
-  )
-)
-                  ))
-                )
-              )}
-            </tbody>
+            {activeTab === 'parents' && renderParentsTable()}
+            {activeTab === 'children' && renderChildrenTable()}
+            {activeTab === 'messages' && renderMessagesTable()}
           </table>
         </div>
 
