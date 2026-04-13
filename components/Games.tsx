@@ -6,6 +6,7 @@ const games = [
     bg: '#EAF3DE',
     color: '#27500A',
     subColor: '#3B6D11',
+    path: '/child-login',
   },
   {
     icon: '🔤',
@@ -14,6 +15,7 @@ const games = [
     bg: '#E6F1FB',
     color: '#0C447C',
     subColor: '#185FA5',
+    path: '/child-login',
   },
   {
     icon: '🧠',
@@ -22,6 +24,7 @@ const games = [
     bg: '#FAEEDA',
     color: '#633806',
     subColor: '#854F0B',
+    path: '/child-login',
   },
   {
     icon: '⚡',
@@ -30,6 +33,7 @@ const games = [
     bg: '#FBEAF0',
     color: '#72243E',
     subColor: '#993556',
+    path: '/child-login',
   },
 ]
 
@@ -57,7 +61,9 @@ export default function Games() {
         gap: '12px',
       }}>
         {games.map((game) => (
-          <div key={game.name} style={{
+          <div key={game.name} 
+          onClick={() => window.location.href = game.path}
+          style={{
             background: game.bg,
             borderRadius: '12px',
             padding: '18px',

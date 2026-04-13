@@ -29,15 +29,19 @@ export default function Footer() {
       </span>
 
       <div style={{ display: 'flex', gap: '20px' }}>
-        {['Privacy', 'Terms', 'Contact'].map((link) => (
-          <a key={link} href="#" style={{
-            fontSize: '12px',
-            color: '#AFA9EC',
-            textDecoration: 'none',
-          }}>
-            {link}
-          </a>
-        ))}
+        {[
+  { label: 'Privacy', href: '/privacy' },
+  { label: 'Terms', href: '/terms' },
+  { label: 'Contact', href: '/contact' },
+].map((link) => (
+  <a key={link.label} href={link.href} style={{
+    fontSize: '12px',
+    color: '#AFA9EC',
+    textDecoration: 'none',
+  }}>
+    {link.label}
+  </a>
+))}
       </div>
     </footer>
   )
