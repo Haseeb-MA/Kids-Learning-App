@@ -16,6 +16,7 @@ interface Subject {
   name: string
   category: string
   grade_level: number
+  lesson_count?: number
 }
 
 interface AssignedSubject {
@@ -34,7 +35,7 @@ export default function ChildDetail({ params }: { params: Promise<{ id: string }
   const [assigned, setAssigned] = useState<AssignedSubject[]>([])
   const [loading, setLoading] = useState(true)
   const [showAssign, setShowAssign] = useState(false)
-  const [selectedSubject, setSelectedSubject] = useState('')
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [deadline, setDeadline] = useState('')
   const [assigning, setAssigning] = useState(false)
   const [error, setError] = useState('')
@@ -43,7 +44,10 @@ export default function ChildDetail({ params }: { params: Promise<{ id: string }
   const [savingPin, setSavingPin] = useState(false)
   const [pinSaved, setPinSaved] = useState(false)
   const [pinReset, setPinReset] = useState(false)
+  const [success, setSuccess] = useState('')
+
   useEffect(() => {
+    document.title = 'Child details · BrightMinds'
     loadAll()
   }, [])
 
@@ -67,16 +71,28 @@ export default function ChildDetail({ params }: { params: Promise<{ id: string }
     }
 
     setChild(childData)
+    document.title = `${childData.full_name} · BrightMinds`
 
     const { data: fetchedSubjects } = await supabase
-      .from('subjects')
-      .select('*')
-      .eq('grade_level', childData.grade)
-      .eq('is_active', true)
-      .order('category')
+  .from('subjects')
+  .select('*')
+  .eq('grade_level', childData.grade)
+  .eq('is_active', true)
+  .order('category')
 
-    if (fetchedSubjects) setSubjectList(fetchedSubjects)
+if (fetchedSubjects) {
+  const { data: lessonCounts } = await supabase
+    .from('lessons')
+    .select('subject_id')
+    .in('subject_id', fetchedSubjects.map(s => s.id))
 
+  const enriched = fetchedSubjects.map(s => ({
+    ...s,
+    lesson_count: lessonCounts?.filter(l => l.subject_id === s.id).length || 0,
+  }))
+
+  setSubjectList(enriched)
+}
     await loadAssigned()
     setLoading(false)
   }
@@ -119,11 +135,11 @@ export default function ChildDetail({ params }: { params: Promise<{ id: string }
     }
 
     const alreadyAssigned = assigned.find(
-      a => a.subject_id === selectedSubject
+      a => a.subject_id === selectedSubject.id
     )
 
     if (alreadyAssigned) {
-      setError('This subject is already assigned to this child')
+      setError('This subject is already assigned')
       setAssigning(false)
       return
     }
@@ -132,7 +148,7 @@ export default function ChildDetail({ params }: { params: Promise<{ id: string }
       .from('assigned_subjects')
       .insert({
         child_id: id,
-        subject_id: selectedSubject,
+        subject_id: selectedSubject.id,
         deadline,
         completed: false,
       })
@@ -143,9 +159,11 @@ export default function ChildDetail({ params }: { params: Promise<{ id: string }
       return
     }
 
-    setSelectedSubject('')
+    setSelectedSubject(null)
     setDeadline('')
     setShowAssign(false)
+    setSuccess(`${selectedSubject.name} assigned successfully!`)
+    setTimeout(() => setSuccess(''), 3000)
     await loadAssigned()
     setAssigning(false)
   }
@@ -158,44 +176,100 @@ export default function ChildDetail({ params }: { params: Promise<{ id: string }
 
     await loadAssigned()
   }
-  
-  const handleResetPin = async () => {
-  const { error } = await supabase
-    .from('children')
-    .update({ pin: null })
-    .eq('id', id)
 
-  if (!error) {
-    setPin('')
+  const handleSavePin = async () => {
+    setSavingPin(true)
     setPinSaved(false)
-    setPinReset(true)
-    setTimeout(() => setPinReset(false), 3000)
-  }
-}
-const handleSavePin = async () => {
-  setSavingPin(true)
-  setPinSaved(false)
 
-  if (pin.length !== 4 || !/^\d+$/.test(pin)) {
-    setError('PIN must be exactly 4 digits')
+    if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+      setError('PIN must be exactly 4 digits')
+      setSavingPin(false)
+      return
+    }
+
+    const { error: pinError } = await supabase
+      .from('children')
+      .update({ pin })
+      .eq('id', id)
+
+    if (pinError) {
+      setError(pinError.message)
+      setSavingPin(false)
+      return
+    }
+
+    setPinSaved(true)
     setSavingPin(false)
-    return
   }
 
-  const { error: pinError } = await supabase
-    .from('children')
-    .update({ pin })
-    .eq('id', id)
+  const handleResetPin = async () => {
+    const { error } = await supabase
+      .from('children')
+      .update({ pin: null })
+      .eq('id', id)
 
-  if (pinError) {
-    setError(pinError.message)
-    setSavingPin(false)
-    return
+    if (!error) {
+      setPin('')
+      setPinSaved(false)
+      setPinReset(true)
+      setTimeout(() => setPinReset(false), 3000)
+    }
   }
 
-  setPinSaved(true)
-  setSavingPin(false)
-}
+  const setQuickDeadline = (days: number) => {
+    const date = new Date()
+    date.setDate(date.getDate() + days)
+    setDeadline(date.toISOString().split('T')[0])
+  }
+
+  const getDaysLeft = (deadline: string) => {
+    return Math.ceil(
+      (new Date(deadline).getTime() - new Date().getTime())
+      / (1000 * 60 * 60 * 24)
+    )
+  }
+
+  const getDeadlineColor = (deadline: string) => {
+    const days = getDaysLeft(deadline)
+    if (days < 0) return '#A32D2D'
+    if (days <= 7) return '#854F0B'
+    return '#085041'
+  }
+
+  const getDeadlineBg = (deadline: string) => {
+    const days = getDaysLeft(deadline)
+    if (days < 0) return '#FCEBEB'
+    if (days <= 7) return '#FAEEDA'
+    return '#E1F5EE'
+  }
+
+  const getDeadlineText = (deadline: string) => {
+    const days = getDaysLeft(deadline)
+    if (days < 0) return `Overdue · ${new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+    if (days === 0) return 'Due today'
+    if (days === 1) return '1 day left'
+    if (days <= 7) return `${days} days left · Due soon`
+    return `${days} days left · ${new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+  }
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Mathematics': return '➕'
+      case 'English': return '📖'
+      case 'Science': return '🔬'
+      default: return '📚'
+    }
+  }
+
+  const getCategoryBg = (category: string) => {
+    switch (category) {
+      case 'Mathematics': return '#EAF3DE'
+      case 'English': return '#E6F1FB'
+      case 'Science': return '#FAEEDA'
+      default: return '#EEEDFE'
+    }
+  }
+
   const categories = ['All', ...Array.from(
     new Set(subjectList.map(s => s.category))
   )]
@@ -204,16 +278,8 @@ const handleSavePin = async () => {
     ? subjectList
     : subjectList.filter(s => s.category === activeCategory)
 
-  const isDeadlineSoon = (deadline: string) => {
-    const days = Math.ceil(
-      (new Date(deadline).getTime() - new Date().getTime())
-      / (1000 * 60 * 60 * 24)
-    )
-    return days <= 7 && days >= 0
-  }
-
-  const isOverdue = (deadline: string) => {
-    return new Date(deadline) < new Date()
+  const isAlreadyAssigned = (subjectId: string) => {
+    return assigned.some(a => a.subject_id === subjectId)
   }
 
   if (loading) {
@@ -278,6 +344,20 @@ const handleSavePin = async () => {
 
       <div style={{ padding: '32px 40px' }}>
 
+        {success && (
+          <div style={{
+            background: '#E1F5EE',
+            border: '0.5px solid #9FE1CB',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            fontSize: '13px',
+            color: '#085041',
+          }}>
+            ✓ {success}
+          </div>
+        )}
+
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -318,19 +398,34 @@ const handleSavePin = async () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setShowAssign(true)}
-            style={{
-              padding: '10px 20px',
-              background: '#7F77DD',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              cursor: 'pointer',
-            }}>
-            + Assign subject
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={() => router.push(`/parent/progress/${id}`)}
+              style={{
+                padding: '10px 16px',
+                background: '#EEEDFE',
+                border: '0.5px solid #AFA9EC',
+                borderRadius: '8px',
+                fontSize: '13px',
+                color: '#534AB7',
+                cursor: 'pointer',
+              }}>
+              📊 Progress
+            </button>
+            <button
+              onClick={() => setShowAssign(!showAssign)}
+              style={{
+                padding: '10px 20px',
+                background: showAssign ? '#f5f4f0' : '#7F77DD',
+                color: showAssign ? '#888780' : '#fff',
+                border: showAssign ? '0.5px solid #D3D1C7' : 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                cursor: 'pointer',
+              }}>
+              {showAssign ? 'Cancel' : '+ Assign subject'}
+            </button>
+          </div>
         </div>
 
         {showAssign && (
@@ -345,16 +440,16 @@ const handleSavePin = async () => {
               fontSize: '16px',
               fontWeight: '500',
               color: '#2C2C2A',
-              marginBottom: '6px',
+              marginBottom: '4px',
             }}>
               Assign a subject
             </h2>
             <p style={{
               fontSize: '13px',
               color: '#888780',
-              marginBottom: '20px',
+              marginBottom: '16px',
             }}>
-              Showing Grade {child?.grade} subjects
+              Grade {child?.grade} subjects · tap to select
             </p>
 
             {error && (
@@ -382,7 +477,7 @@ const handleSavePin = async () => {
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   style={{
-                    padding: '5px 12px',
+                    padding: '5px 14px',
                     borderRadius: '20px',
                     border: '0.5px solid',
                     borderColor: activeCategory === cat ? '#7F77DD' : '#D3D1C7',
@@ -407,88 +502,232 @@ const handleSavePin = async () => {
                 marginBottom: '16px',
               }}>
                 No subjects available for Grade {child?.grade} yet.
-                Add subjects from the admin panel first.
               </div>
             ) : (
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{
-                  fontSize: '13px',
-                  color: '#444441',
-                  display: 'block',
-                  marginBottom: '6px',
-                }}>
-                  Select subject
-                </label>
-                <select
-                  value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                gap: '10px',
+                marginBottom: '16px',
+              }}>
+                {filteredSubjects.map(subject => {
+                  const alreadyAssigned = isAlreadyAssigned(subject.id)
+                  const isSelected = selectedSubject?.id === subject.id
+                  const hasNoLessons = (subject.lesson_count || 0) === 0
+
+                  return (
+                    <div
+                      key={subject.id}
+                      onClick={() => {
+                        if (!alreadyAssigned && !hasNoLessons) {
+                          setSelectedSubject(isSelected ? null : subject)
+                          setError('')
+                        }
+                      }}
+                      style={{
+  background: alreadyAssigned || hasNoLessons
+    ? '#f5f4f0'
+    : isSelected
+    ? '#EEEDFE'
+    : '#ffffff',
+  border: isSelected
+    ? '2px solid #7F77DD'
+    : '0.5px solid #e5e3db',
+  borderRadius: '12px',
+  padding: '14px',
+  cursor: alreadyAssigned || hasNoLessons ? 'default' : 'pointer',
+  opacity: alreadyAssigned || hasNoLessons ? 0.6 : 1,
+  transition: 'border-color 0.15s',
+}}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: getCategoryBg(subject.category),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '16px',
+                        marginBottom: '8px',
+                      }}>
+                        {getCategoryIcon(subject.category)}
+                      </div>
+                      <p style={{
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        color: '#2C2C2A',
+                        margin: '0 0 2px',
+                      }}>
+                        {subject.name}
+                      </p>
+                      <p style={{
+                        fontSize: '11px',
+                        color: '#888780',
+                        margin: 0,
+                      }}>
+                        {subject.category}
+                      </p>
+                      {alreadyAssigned && (
+  <span style={{
+    display: 'inline-block',
+    marginTop: '6px',
+    background: '#E1F5EE',
+    color: '#085041',
+    fontSize: '10px',
+    padding: '2px 8px',
+    borderRadius: '10px',
+  }}>
+    Already assigned
+  </span>
+)}
+{!alreadyAssigned && hasNoLessons && (
+  <span style={{
+    display: 'inline-block',
+    marginTop: '6px',
+    background: '#FCEBEB',
+    color: '#A32D2D',
+    fontSize: '10px',
+    padding: '2px 8px',
+    borderRadius: '10px',
+  }}>
+    No lessons yet
+  </span>
+)}
+{!alreadyAssigned && !hasNoLessons && (
+  <span style={{
+    display: 'inline-block',
+    marginTop: '6px',
+    background: '#E1F5EE',
+    color: '#085041',
+    fontSize: '10px',
+    padding: '2px 8px',
+    borderRadius: '10px',
+  }}>
+    {subject.lesson_count} lesson{subject.lesson_count !== 1 ? 's' : ''}
+  </span>
+)}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {selectedSubject && (
+              <div style={{
+                background: '#EEEDFE',
+                border: '0.5px solid #AFA9EC',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                marginBottom: '16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <div>
+                  <p style={{
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#26215C',
+                    margin: '0 0 2px',
+                  }}>
+                    {selectedSubject.name} selected
+                  </p>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#534AB7',
+                    margin: 0,
+                  }}>
+                    {selectedSubject.category} · Grade {selectedSubject.grade_level}
+                  </p>
+                </div>
+                <span style={{ fontSize: '18px' }}>✓</span>
+              </div>
+            )}
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                fontSize: '13px',
+                color: '#444441',
+                display: 'block',
+                marginBottom: '8px',
+              }}>
+                Completion deadline
+              </label>
+              <div style={{
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}>
+                <input
+                  type="date"
+                  value={deadline}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setDeadline(e.target.value)}
                   style={{
-                    width: '100%',
                     padding: '10px 14px',
                     border: '0.5px solid #D3D1C7',
                     borderRadius: '8px',
                     fontSize: '14px',
                     outline: 'none',
-                    background: '#fff',
-                    boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <span style={{
+                    fontSize: '12px',
+                    color: '#888780',
+                    alignSelf: 'center',
                   }}>
-                  <option value="">Choose a subject...</option>
-                  {filteredSubjects.map(subject => (
-                    <option key={subject.id} value={subject.id}>
-                      {subject.name} ({subject.category})
-                    </option>
+                    Quick set:
+                  </span>
+                  {[
+                    { label: '1 week', days: 7 },
+                    { label: '2 weeks', days: 14 },
+                    { label: '1 month', days: 30 },
+                  ].map(({ label, days }) => (
+                    <button
+                      key={label}
+                      onClick={() => setQuickDeadline(days)}
+                      style={{
+                        padding: '6px 12px',
+                        border: '0.5px solid #D3D1C7',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        background: '#ffffff',
+                        color: '#444441',
+                        cursor: 'pointer',
+                      }}>
+                      {label}
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
-            )}
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                fontSize: '13px',
-                color: '#444441',
-                display: 'block',
-                marginBottom: '6px',
-              }}>
-                Completion deadline
-              </label>
-              <input
-                type="date"
-                value={deadline}
-                min={new Date().toISOString().split('T')[0]}
-                onChange={(e) => setDeadline(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  border: '0.5px solid #D3D1C7',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 onClick={handleAssign}
-                disabled={assigning}
+                disabled={assigning || !selectedSubject || !deadline}
                 style={{
                   padding: '10px 20px',
-                  background: assigning ? '#AFA9EC' : '#7F77DD',
+                  background: assigning || !selectedSubject || !deadline
+                    ? '#AFA9EC' : '#7F77DD',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  cursor: assigning ? 'not-allowed' : 'pointer',
+                  cursor: assigning || !selectedSubject || !deadline
+                    ? 'not-allowed' : 'pointer',
                 }}>
                 {assigning ? 'Assigning...' : 'Assign subject'}
               </button>
               <button
                 onClick={() => {
                   setShowAssign(false)
-                  setError('')
-                  setSelectedSubject('')
+                  setSelectedSubject(null)
                   setDeadline('')
+                  setError('')
+                  setActiveCategory('All')
                 }}
                 style={{
                   padding: '10px 20px',
@@ -505,110 +744,110 @@ const handleSavePin = async () => {
           </div>
         )}
 
-<div style={{
-  background: '#ffffff',
-  border: '0.5px solid #e5e3db',
-  borderRadius: '12px',
-  padding: '24px',
-  marginBottom: '24px',
-}}>
-  <h2 style={{
-    fontSize: '16px',
-    fontWeight: '500',
-    color: '#2C2C2A',
-    marginBottom: '6px',
-  }}>
-    Child login PIN
-  </h2>
-  <p style={{
-    fontSize: '13px',
-    color: '#888780',
-    marginBottom: '16px',
-  }}>
-    Set a 4 digit PIN your child will use to log in
-  </p>
+        <div style={{
+          background: '#ffffff',
+          border: '0.5px solid #e5e3db',
+          borderRadius: '12px',
+          padding: '24px',
+          marginBottom: '24px',
+        }}>
+          <h2 style={{
+            fontSize: '16px',
+            fontWeight: '500',
+            color: '#2C2C2A',
+            marginBottom: '6px',
+          }}>
+            Child login PIN
+          </h2>
+          <p style={{
+            fontSize: '13px',
+            color: '#888780',
+            marginBottom: '16px',
+          }}>
+            Set a 4 digit PIN your child will use to log in
+          </p>
 
-  {pinReset && (
-    <div style={{
-      background: '#FAEEDA',
-      border: '0.5px solid #FAC775',
-      borderRadius: '8px',
-      padding: '10px 14px',
-      marginBottom: '16px',
-      fontSize: '13px',
-      color: '#633806',
-    }}>
-      PIN has been reset. Please set a new one.
-    </div>
-  )}
+          {pinReset && (
+            <div style={{
+              background: '#FAEEDA',
+              border: '0.5px solid #FAC775',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              marginBottom: '16px',
+              fontSize: '13px',
+              color: '#633806',
+            }}>
+              PIN has been reset. Please set a new one.
+            </div>
+          )}
 
-  {pinSaved && (
-    <div style={{
-      background: '#E1F5EE',
-      border: '0.5px solid #9FE1CB',
-      borderRadius: '8px',
-      padding: '10px 14px',
-      marginBottom: '16px',
-      fontSize: '13px',
-      color: '#085041',
-    }}>
-      PIN saved successfully
-    </div>
-  )}
+          {pinSaved && (
+            <div style={{
+              background: '#E1F5EE',
+              border: '0.5px solid #9FE1CB',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              marginBottom: '16px',
+              fontSize: '13px',
+              color: '#085041',
+            }}>
+              PIN saved successfully
+            </div>
+          )}
 
-  <div style={{
-    display: 'flex',
-    gap: '10px',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  }}>
-    <input
-      type="number"
-      placeholder="Enter 4 digit PIN"
-      value={pin}
-      maxLength={4}
-      onChange={(e) => {
-        if (e.target.value.length <= 4) setPin(e.target.value)
-      }}
-      style={{
-        width: '160px',
-        padding: '10px 14px',
-        border: '0.5px solid #D3D1C7',
-        borderRadius: '8px',
-        fontSize: '14px',
-        outline: 'none',
-        boxSizing: 'border-box',
-      }}
-    />
-    <button
-      onClick={handleSavePin}
-      disabled={savingPin}
-      style={{
-        padding: '10px 20px',
-        background: savingPin ? '#AFA9EC' : '#7F77DD',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '8px',
-        fontSize: '14px',
-        cursor: savingPin ? 'not-allowed' : 'pointer',
-      }}>
-      {savingPin ? 'Saving...' : 'Save PIN'}
-    </button>
-    <button
-      onClick={handleResetPin}
-      style={{
-        padding: '10px 20px',
-        background: 'transparent',
-        color: '#A32D2D',
-        border: '0.5px solid #F09595',
-        borderRadius: '8px',
-        fontSize: '14px',
-        cursor: 'pointer',
-      }}>
-      Reset PIN
-    </button>
-  </div>
-</div>
+          <div style={{
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}>
+            <input
+              type="number"
+              placeholder="Enter 4 digit PIN"
+              value={pin}
+              onChange={(e) => {
+                if (e.target.value.length <= 4) setPin(e.target.value)
+              }}
+              style={{
+                width: '160px',
+                padding: '10px 14px',
+                border: '0.5px solid #D3D1C7',
+                borderRadius: '8px',
+                fontSize: '14px',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <button
+              onClick={handleSavePin}
+              disabled={savingPin}
+              style={{
+                padding: '10px 20px',
+                background: savingPin ? '#AFA9EC' : '#7F77DD',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                cursor: savingPin ? 'not-allowed' : 'pointer',
+              }}>
+              {savingPin ? 'Saving...' : 'Save PIN'}
+            </button>
+            <button
+              onClick={handleResetPin}
+              style={{
+                padding: '10px 20px',
+                background: 'transparent',
+                color: '#A32D2D',
+                border: '0.5px solid #F09595',
+                borderRadius: '8px',
+                fontSize: '14px',
+                cursor: 'pointer',
+              }}>
+              Reset PIN
+            </button>
+          </div>
+        </div>
+
         <h2 style={{
           fontSize: '16px',
           fontWeight: '500',
@@ -658,21 +897,40 @@ const handleSavePin = async () => {
                   alignItems: 'flex-start',
                   marginBottom: '12px',
                 }}>
-                  <div>
-                    <p style={{
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#2C2C2A',
-                      marginBottom: '3px',
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                  }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '8px',
+                      background: getCategoryBg(item.subjects.category),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '18px',
                     }}>
-                      {item.subjects.name}
-                    </p>
-                    <p style={{
-                      fontSize: '12px',
-                      color: '#888780',
-                    }}>
-                      {item.subjects.category}
-                    </p>
+                      {getCategoryIcon(item.subjects.category)}
+                    </div>
+                    <div>
+                      <p style={{
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#2C2C2A',
+                        margin: '0 0 2px',
+                      }}>
+                        {item.subjects.name}
+                      </p>
+                      <p style={{
+                        fontSize: '12px',
+                        color: '#888780',
+                        margin: 0,
+                      }}>
+                        {item.subjects.category}
+                      </p>
+                    </div>
                   </div>
                   <span style={{
                     background: item.completed ? '#E1F5EE' : '#EEEDFE',
@@ -680,8 +938,9 @@ const handleSavePin = async () => {
                     padding: '3px 10px',
                     borderRadius: '20px',
                     fontSize: '11px',
+                    whiteSpace: 'nowrap',
                   }}>
-                    {item.completed ? 'Completed' : 'In progress'}
+                    {item.completed ? 'Completed ✓' : 'In progress'}
                   </span>
                 </div>
 
@@ -690,33 +949,21 @@ const handleSavePin = async () => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}>
-                  <div>
-                    <p style={{
-                      fontSize: '11px',
-                      color: '#888780',
-                      marginBottom: '2px',
-                    }}>
-                      Deadline
-                    </p>
-                    <p style={{
-                      fontSize: '13px',
-                      color: isOverdue(item.deadline)
-                        ? '#A32D2D'
-                        : isDeadlineSoon(item.deadline)
-                        ? '#854F0B'
-                        : '#2C2C2A',
-                      fontWeight: '500',
-                    }}>
-                      {new Date(item.deadline).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                      {isOverdue(item.deadline) && ' · Overdue'}
-                      {isDeadlineSoon(item.deadline) &&
-                        !isOverdue(item.deadline) && ' · Due soon'}
-                    </p>
-                  </div>
+                  <span style={{
+                    background: item.completed
+                      ? '#E1F5EE'
+                      : getDeadlineBg(item.deadline),
+                    color: item.completed
+                      ? '#085041'
+                      : getDeadlineColor(item.deadline),
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                  }}>
+                    {item.completed
+                      ? 'Done'
+                      : getDeadlineText(item.deadline)}
+                  </span>
                   <button
                     onClick={() => handleRemove(item.id)}
                     style={{
