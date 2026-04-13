@@ -22,6 +22,7 @@ interface Stats {
 
 export default function AdminDashboard() {
   const router = useRouter()
+  const [messages, setMessages] = useState<any[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [children, setChildren] = useState<any[]>([])
   const [stats, setStats] = useState<Stats>({
@@ -31,7 +32,7 @@ export default function AdminDashboard() {
     activeChildren: 0,
   })
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'parents' | 'children'>('parents')
+  const [activeTab, setActiveTab] = useState<'parents' | 'children' | 'messages'>('parents')
 
   useEffect(() => {
     checkAdminAndLoad()
@@ -67,6 +68,13 @@ export default function AdminDashboard() {
       .eq('role', 'parent')
       .order('created_at', { ascending: false })
 
+      const { data: messagesData } = await supabase
+  .from('contact_messages')
+  .select('*')
+  .order('created_at', { ascending: false })
+
+if (messagesData) setMessages(messagesData)
+
     const { data: childrenData } = await supabase
       .from('children')
       .select('*')
@@ -101,6 +109,14 @@ export default function AdminDashboard() {
       await loadData()
     }
   }
+
+  const handleReadMessage = async (id: string, currentStatus: boolean) => {
+  await supabase
+    .from('contact_messages')
+    .update({ is_read: !currentStatus })
+    .eq('id', id)
+  await loadData()
+}
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -250,23 +266,37 @@ export default function AdminDashboard() {
           padding: '3px',
           width: 'fit-content',
         }}>
-          {(['parents', 'children'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                padding: '8px 20px',
-                borderRadius: '8px',
-                border: 'none',
-                fontSize: '13px',
-                cursor: 'pointer',
-                background: activeTab === tab ? '#ffffff' : 'transparent',
-                color: activeTab === tab ? '#26215C' : '#888780',
-                fontWeight: activeTab === tab ? '500' : '400',
-              }}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
+          {(['parents', 'children', 'messages'] as const).map((tab) => (
+  <button
+    key={tab}
+    onClick={() => setActiveTab(tab)}
+    style={{
+      padding: '8px 20px',
+      borderRadius: '8px',
+      border: 'none',
+      fontSize: '13px',
+      cursor: 'pointer',
+      background: activeTab === tab ? '#ffffff' : 'transparent',
+      color: activeTab === tab ? '#26215C' : '#888780',
+      fontWeight: activeTab === tab ? '500' : '400',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+    }}>
+    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+    {tab === 'messages' && messages.filter(m => !m.is_read).length > 0 && (
+      <span style={{
+        background: '#7F77DD',
+        color: '#fff',
+        fontSize: '10px',
+        padding: '1px 6px',
+        borderRadius: '10px',
+      }}>
+        {messages.filter(m => !m.is_read).length}
+      </span>
+    )}
+  </button>
+))}
         </div>
 
         <div style={{
@@ -283,22 +313,31 @@ export default function AdminDashboard() {
             <thead>
               <tr style={{ background: '#f5f4f0' }}>
                 {activeTab === 'parents' ? (
-                  <>
-                    <th style={thStyle}>Name</th>
-                    <th style={thStyle}>Email</th>
-                    <th style={thStyle}>Joined</th>
-                    <th style={thStyle}>Status</th>
-                    <th style={thStyle}>Action</th>
-                  </>
-                ) : (
-                  <>
-                    <th style={thStyle}>Name</th>
-                    <th style={thStyle}>Grade</th>
-                    <th style={thStyle}>Parent</th>
-                    <th style={thStyle}>Status</th>
-                    <th style={thStyle}>Action</th>
-                  </>
-                )}
+  <>
+    <th style={thStyle}>Name</th>
+    <th style={thStyle}>Email</th>
+    <th style={thStyle}>Joined</th>
+    <th style={thStyle}>Status</th>
+    <th style={thStyle}>Action</th>
+  </>
+) : activeTab === 'children' ? (
+  <>
+    <th style={thStyle}>Name</th>
+    <th style={thStyle}>Grade</th>
+    <th style={thStyle}>Parent</th>
+    <th style={thStyle}>Status</th>
+    <th style={thStyle}>Action</th>
+  </>
+) : (
+  <>
+    <th style={thStyle}>Name</th>
+    <th style={thStyle}>Email</th>
+    <th style={thStyle}>Subject</th>
+    <th style={thStyle}>Date</th>
+    <th style={thStyle}>Status</th>
+    <th style={thStyle}>Action</th>
+  </>
+)}
               </tr>
             </thead>
             <tbody>
@@ -410,6 +449,60 @@ export default function AdminDashboard() {
                         </button>
                       </td>
                     </tr>
+                    ) : (
+  messages.length === 0 ? (
+    <tr>
+      <td colSpan={6} style={{
+        textAlign: 'center',
+        padding: '40px',
+        color: '#888780',
+        fontSize: '14px',
+      }}>
+        No messages yet
+      </td>
+    </tr>
+  ) : (
+    messages.map((msg, index) => (
+      <tr key={msg.id} style={{
+        borderTop: index === 0 ? 'none' : '0.5px solid #e5e3db',
+        background: msg.is_read ? '#ffffff' : '#EEEDFE',
+      }}>
+        <td style={tdStyle}>{msg.name}</td>
+        <td style={tdStyle}>{msg.email}</td>
+        <td style={tdStyle}>{msg.subject}</td>
+        <td style={tdStyle}>
+          {new Date(msg.created_at).toLocaleDateString()}
+        </td>
+        <td style={tdStyle}>
+          <span style={{
+            background: msg.is_read ? '#F1EFE8' : '#EEEDFE',
+            color: msg.is_read ? '#888780' : '#534AB7',
+            padding: '3px 10px',
+            borderRadius: '20px',
+            fontSize: '12px',
+          }}>
+            {msg.is_read ? 'Read' : 'New'}
+          </span>
+        </td>
+        <td style={tdStyle}>
+          <button
+            onClick={() => handleReadMessage(msg.id, msg.is_read)}
+            style={{
+              padding: '5px 12px',
+              border: '0.5px solid #D3D1C7',
+              borderRadius: '6px',
+              fontSize: '12px',
+              background: 'transparent',
+              cursor: 'pointer',
+              color: msg.is_read ? '#534AB7' : '#085041',
+            }}>
+            {msg.is_read ? 'Mark unread' : 'Mark read'}
+          </button>
+        </td>
+      </tr>
+    ))
+  )
+)
                   ))
                 )
               )}

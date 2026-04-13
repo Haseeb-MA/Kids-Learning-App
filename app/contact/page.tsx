@@ -1,5 +1,7 @@
+
 'use client'
 
+import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -9,16 +11,37 @@ export default function ContactPage() {
   const [email, setEmail] = useState('')
   const [subject, setSubject] = useState('General enquiry')
   const [message, setMessage] = useState('')
-  const [submitted, setSubmitted] = useState(false)
+ const [submitted, setSubmitted] = useState(false)
+const [loading, setLoading] = useState(false)
+const [error, setError] = useState('')
+
 
   useEffect(() => {
     document.title = 'Contact us · BrightMinds'
   }, [])
 
-  const handleSubmit = () => {
-    if (!name || !email || !message) return
-    setSubmitted(true)
+  const handleSubmit = async () => {
+  if (!name || !email || !message) return
+  setLoading(true)
+
+  const { error } = await supabase
+    .from('contact_messages')
+    .insert({
+      name,
+      email,
+      subject,
+      message,
+    })
+
+  if (error) {
+    setError('Something went wrong. Please try again.')
+    setLoading(false)
+    return
   }
+
+  setSubmitted(true)
+  setLoading(false)
+}
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f4f0' }}>
@@ -238,22 +261,37 @@ export default function ContactPage() {
               />
             </div>
 
-            <button
-              onClick={handleSubmit}
-              disabled={!name || !email || !message}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: !name || !email || !message ? '#AFA9EC' : '#7F77DD',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '15px',
-                cursor: !name || !email || !message ? 'not-allowed' : 'pointer',
-              }}>
-              Send message
-            </button>
+            {error && (
+  <div style={{
+    background: '#FCEBEB',
+    border: '0.5px solid #F09595',
+    borderRadius: '8px',
+    padding: '10px 14px',
+    marginBottom: '16px',
+    fontSize: '13px',
+    color: '#A32D2D',
+  }}>
+    {error}
+  </div>
+)}
 
+  <button
+  onClick={handleSubmit}
+  disabled={!name || !email || !message || loading}
+  style={{
+    width: '100%',
+    padding: '12px',
+    background: !name || !email || !message || loading
+      ? '#AFA9EC' : '#7F77DD',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '15px',
+    cursor: !name || !email || !message || loading
+      ? 'not-allowed' : 'pointer',
+  }}>
+  {loading ? 'Sending...' : 'Send message'}
+</button>
             <div style={{
               marginTop: '32px',
               paddingTop: '24px',
