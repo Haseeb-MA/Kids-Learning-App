@@ -173,6 +173,7 @@ export default function LoginPage() {
             placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
             style={{
               width: '100%',
               padding: '10px 14px',
