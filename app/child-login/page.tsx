@@ -39,7 +39,7 @@ export default function ChildLoginPage() {
       .from('profiles')
       .select('id')
       .eq('family_code', code)
-      .single()
+      .maybeSingle()
       console.log('Profile result:', profileData, 'Error:', profileError) 
 
     if (profileError || !profileData) {
