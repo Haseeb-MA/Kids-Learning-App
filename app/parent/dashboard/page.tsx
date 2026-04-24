@@ -41,16 +41,29 @@ export default function ParentDashboard() {
       return
     }
 
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('full_name, email, role, family_code')
-      .eq('id', user.id)
-      .single()
+    // AFTER
+const { data: profileData } = await supabase
+  .from('profiles')
+  .select('full_name, email, role, family_code')
+  .eq('id', user.id)
+  .maybeSingle()
 
-    if (profileData?.role !== 'parent') {
-      router.push('/login')
-      return
-    }
+// If no profile exists yet, create one now
+if (!profileData) {
+  await supabase.from('profiles').insert({
+    id: user.id,
+    email: user.email,
+    role: 'parent',
+  })
+  // Reload after insert
+  await checkParentAndLoad()
+  return
+}
+
+if (profileData?.role !== 'parent') {
+  router.push('/login')
+  return
+}
 
     setProfile(profileData)
     await loadChildren(user.id)
