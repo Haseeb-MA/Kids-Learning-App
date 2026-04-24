@@ -86,7 +86,8 @@ const [loadingExplanation, setLoadingExplanation] = useState(false)
       })
   }
 
- const handleNext = () => {
+ // AFTER
+const handleNext = async () => {
   if (currentQ < quizzes.length - 1) {
     setCurrentQ(prev => prev + 1)
     setSelected(null)
@@ -94,9 +95,15 @@ const [loadingExplanation, setLoadingExplanation] = useState(false)
     setExplanation(null)
     setLoadingExplanation(false)
   } else {
-    checkAndAwardBadge()
-    setStage('result')
-  }
+  checkAndAwardBadge()
+  // Mark assigned_subject as completed
+  await supabase
+    .from('assigned_subjects')
+    .update({ completed: true })
+    .eq('child_id', childId)
+    .eq('subject_id', lesson?.subject_id)
+  setStage('result')
+}
 }
 const handleExplain = async (quiz: Quiz) => {
   setLoadingExplanation(true)
