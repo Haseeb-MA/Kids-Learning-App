@@ -40,6 +40,7 @@ export default function ChildLoginPage() {
       .select('id')
       .eq('family_code', code)
       .single()
+      console.log('Profile result:', profileData, 'Error:', profileError) 
 
     if (profileError || !profileData) {
       setCodeError('Family code not found. Check with your parent.')
