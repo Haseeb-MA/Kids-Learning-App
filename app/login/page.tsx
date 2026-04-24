@@ -13,6 +13,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+const [forgotMessage, setForgotMessage] = useState('')
   useEffect(() => {
     document.title = 'Log in · BrightMinds'
   }, [])
@@ -58,7 +60,23 @@ export default function LoginPage() {
 
     setLoading(false)
   }
-
+const handleForgotPassword = async () => {
+  setForgotMessage('')
+  if (!email) {
+    setForgotMessage('Enter your email above first.')
+    return
+  }
+  setForgotLoading(true)
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  })
+  setForgotLoading(false)
+  if (error) {
+    setForgotMessage(error.message)
+  } else {
+    setForgotMessage('Check your email for a reset link.')
+  }
+}
   return (
     <div style={{
       minHeight: '100vh',
@@ -160,31 +178,46 @@ export default function LoginPage() {
         </div>
 
         <div style={{ marginBottom: '24px' }}>
-          <label style={{
-            fontSize: '13px',
-            color: '#444441',
-            display: 'block',
-            marginBottom: '6px',
-          }}>
-            Password
-          </label>
-          <input
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-            style={{
-              width: '100%',
-              padding: '10px 14px',
-              border: '0.5px solid #D3D1C7',
-              borderRadius: '8px',
-              fontSize: '14px',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+    <label style={{ fontSize: '13px', color: '#444441' }}>
+      Password
+    </label>
+    <button
+      type="button"
+      onClick={handleForgotPassword}
+      disabled={forgotLoading}
+      style={{ background: 'none', border: 'none', padding: 0, fontSize: '13px', color: '#7F77DD', cursor: 'pointer', fontWeight: '500' }}
+    >
+      {forgotLoading ? 'Sending...' : 'Forgot password?'}
+    </button>
+  </div>
+  <input
+    type="password"
+    placeholder="Enter your password"
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+    style={{
+      width: '100%',
+      padding: '10px 14px',
+      border: '0.5px solid #D3D1C7',
+      borderRadius: '8px',
+      fontSize: '14px',
+      outline: 'none',
+      boxSizing: 'border-box',
+    }}
+  />
+  {forgotMessage && (
+    <p style={{
+      fontSize: '13px',
+      marginTop: '8px',
+      marginBottom: 0,
+      color: forgotMessage.includes('Check') ? '#3B6D11' : '#A32D2D',
+    }}>
+      {forgotMessage}
+    </p>
+  )}
+</div>
 
         <button
           onClick={handleLogin}
