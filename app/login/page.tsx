@@ -49,13 +49,17 @@ const [forgotMessage, setForgotMessage] = useState('')
         .eq('id', data.user.id)
         .maybeSingle()
 
-      if (profile?.role === 'admin') {
-        router.push('/admin/dashboard')
-      } else if (profile?.role === 'parent') {
-        router.push('/parent/dashboard')
-      } else {
-        router.push('/child/dashboard')
-      }
+      // AFTER
+if (profile?.role === 'admin') {
+  router.push('/admin/dashboard')
+} else if (profile?.role === 'parent') {
+  router.push('/parent/dashboard')
+} else if (profile?.role === 'child') {
+  router.push('/child/dashboard')
+} else {
+  // No profile yet — default to parent dashboard (new signup)
+  router.push('/parent/dashboard')
+}
     }
 
     setLoading(false)
