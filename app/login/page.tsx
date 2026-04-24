@@ -47,7 +47,7 @@ const [forgotMessage, setForgotMessage] = useState('')
         .from('profiles')
         .select('role')
         .eq('id', data.user.id)
-        .single()
+        .maybeSingle()
 
       if (profile?.role === 'admin') {
         router.push('/admin/dashboard')
