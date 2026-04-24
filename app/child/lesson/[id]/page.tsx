@@ -96,12 +96,34 @@ const handleNext = async () => {
     setLoadingExplanation(false)
   } else {
   checkAndAwardBadge()
-  // Mark assigned_subject as completed
-  await supabase
-    .from('assigned_subjects')
-    .update({ completed: true })
-    .eq('child_id', childId)
+
+  // Check if all lessons in this subject are now completed
+  const { data: allLessons } = await supabase
+    .from('lessons')
+    .select('id')
     .eq('subject_id', lesson?.subject_id)
+
+  const { data: completedProgress } = await supabase
+    .from('progress')
+    .select('quiz_id, quizzes!inner(lesson_id)')
+    .eq('child_id', childId)
+    .in('quizzes.lesson_id', (allLessons || []).map(l => l.id))
+
+  // Get unique completed lesson IDs
+  const completedLessonIds = new Set(
+    (completedProgress || []).map((p: any) => p.quizzes.lesson_id)
+  )
+
+  const allDone = (allLessons || []).every(l => completedLessonIds.has(l.id))
+
+  if (allDone) {
+    await supabase
+      .from('assigned_subjects')
+      .update({ completed: true })
+      .eq('child_id', childId)
+      .eq('subject_id', lesson?.subject_id)
+  }
+
   setStage('result')
 }
 }
