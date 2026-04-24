@@ -13,33 +13,62 @@ interface Child {
 
 export default function ChildLoginPage() {
   const router = useRouter()
+  const [step, setStep] = useState<'code' | 'select' | 'pin'>('code')
+  const [familyCode, setFamilyCode] = useState('')
+  const [codeError, setCodeError] = useState('')
+  const [codeLoading, setCodeLoading] = useState(false)
   const [children, setChildren] = useState<Child[]>([])
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [pin, setPin] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [step, setStep] = useState<'select' | 'pin'>('select')
+  const [pinError, setPinError] = useState('')
 
   useEffect(() => {
     document.title = 'Student login · BrightMinds'
-    loadChildren()
   }, [])
 
-  const loadChildren = async () => {
-    const { data } = await supabase
+  const handleFamilyCode = async () => {
+    setCodeError('')
+    const code = familyCode.trim().toUpperCase()
+    if (!code) {
+      setCodeError('Please enter your family code')
+      return
+    }
+    setCodeLoading(true)
+
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('family_code', code)
+      .single()
+
+    if (profileError || !profileData) {
+      setCodeError('Family code not found. Check with your parent.')
+      setCodeLoading(false)
+      return
+    }
+
+    const { data: childrenData } = await supabase
       .from('children')
       .select('id, full_name, grade, pin')
+      .eq('parent_id', profileData.id)
       .eq('is_active', true)
       .not('pin', 'is', null)
 
-    if (data) setChildren(data)
-    setLoading(false)
+    setCodeLoading(false)
+
+    if (!childrenData || childrenData.length === 0) {
+      setCodeError('No children found. Ask your parent to add you first.')
+      return
+    }
+
+    setChildren(childrenData)
+    setStep('select')
   }
 
   const handleSelectChild = (child: Child) => {
     setSelectedChild(child)
     setPin('')
-    setError('')
+    setPinError('')
     setStep('pin')
   }
 
@@ -52,61 +81,38 @@ export default function ChildLoginPage() {
 
   const handlePinPress = useCallback((digit: string) => {
     if (!selectedChild) return
-
     setPin(prev => {
       if (prev.length >= 4) return prev
       const newPin = prev + digit
-      setError('')
-
+      setPinError('')
       if (newPin.length === 4) {
         setTimeout(() => {
           if (newPin !== selectedChild.pin) {
-            setError('Wrong PIN, try again')
+            setPinError('Wrong PIN, try again')
             setPin('')
           } else {
             loginChild(selectedChild)
           }
         }, 300)
       }
-
       return newPin
     })
   }, [selectedChild, loginChild])
 
   const handleDelete = useCallback(() => {
     setPin(prev => prev.slice(0, -1))
-    setError('')
+    setPinError('')
   }, [])
 
   useEffect(() => {
     if (step !== 'pin') return
-
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key >= '0' && e.key <= '9') {
-        handlePinPress(e.key)
-      }
-      if (e.key === 'Backspace') {
-        handleDelete()
-      }
+      if (e.key >= '0' && e.key <= '9') handlePinPress(e.key)
+      if (e.key === 'Backspace') handleDelete()
     }
-
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [step, handlePinPress, handleDelete])
-
-  if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#EEEDFE',
-      }}>
-        <p style={{ color: '#7F77DD', fontSize: '16px' }}>Loading...</p>
-      </div>
-    )
-  }
 
   return (
     <div style={{
@@ -140,101 +146,144 @@ export default function ChildLoginPage() {
           <span style={{ color: '#fff', fontSize: '26px' }}>★</span>
         </div>
 
-        <h1 style={{
-          fontSize: '22px',
-          fontWeight: '500',
-          color: '#26215C',
-          marginBottom: '6px',
-        }}>
-          {step === 'select'
-            ? 'Who are you?'
-            : `Hi ${selectedChild?.full_name.split(' ')[0]}!`}
-        </h1>
-        <p style={{
-          fontSize: '14px',
-          color: '#888780',
-          marginBottom: '28px',
-        }}>
-          {step === 'select'
-            ? 'Tap your name to get started'
-            : 'Enter your secret PIN'}
-        </p>
-
-        {step === 'select' && (
+        {/* STEP 1 — Family code */}
+        {step === 'code' && (
           <>
-            {children.length === 0 ? (
+            <h1 style={{ fontSize: '22px', fontWeight: '500', color: '#26215C', marginBottom: '6px' }}>
+              Enter your family code
+            </h1>
+            <p style={{ fontSize: '14px', color: '#888780', marginBottom: '28px' }}>
+              Ask your parent for your family code
+            </p>
+
+            <input
+              type="text"
+              placeholder="e.g. BM472"
+              value={familyCode}
+              onChange={(e) => setFamilyCode(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === 'Enter' && handleFamilyCode()}
+              maxLength={5}
+              style={{
+                width: '100%',
+                padding: '14px',
+                border: '0.5px solid #D3D1C7',
+                borderRadius: '8px',
+                fontSize: '22px',
+                fontWeight: '500',
+                letterSpacing: '6px',
+                textAlign: 'center',
+                outline: 'none',
+                boxSizing: 'border-box',
+                color: '#26215C',
+                marginBottom: '12px',
+                textTransform: 'uppercase',
+              }}
+            />
+
+            {codeError && (
               <div style={{
-                padding: '20px',
-                color: '#888780',
-                fontSize: '14px',
+                background: '#FCEBEB',
+                border: '0.5px solid #F09595',
+                borderRadius: '8px',
+                padding: '10px',
+                marginBottom: '12px',
+                fontSize: '13px',
+                color: '#A32D2D',
               }}>
-                No student accounts found.
-                Ask your parent to set up your account.
-              </div>
-            ) : (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-                gap: '12px',
-                marginBottom: '24px',
-              }}>
-                {children.map((child) => (
-                  <button
-                    key={child.id}
-                    onClick={() => handleSelectChild(child)}
-                    style={{
-                      background: '#EEEDFE',
-                      border: '0.5px solid #AFA9EC',
-                      borderRadius: '12px',
-                      padding: '16px 12px',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                    }}>
-                    <div style={{
-                      width: '44px',
-                      height: '44px',
-                      borderRadius: '50%',
-                      background: '#7F77DD',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 8px',
-                      fontSize: '20px',
-                      fontWeight: '500',
-                      color: '#fff',
-                    }}>
-                      {child.full_name.charAt(0).toUpperCase()}
-                    </div>
-                    <p style={{
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      color: '#26215C',
-                      margin: '0 0 2px',
-                    }}>
-                      {child.full_name.split(' ')[0]}
-                    </p>
-                    <p style={{
-                      fontSize: '11px',
-                      color: '#888780',
-                      margin: 0,
-                    }}>
-                      Grade {child.grade}
-                    </p>
-                  </button>
-                ))}
+                {codeError}
               </div>
             )}
+
+            <button
+              onClick={handleFamilyCode}
+              disabled={codeLoading}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: codeLoading ? '#AFA9EC' : '#7F77DD',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '15px',
+                cursor: codeLoading ? 'not-allowed' : 'pointer',
+              }}>
+              {codeLoading ? 'Checking...' : 'Continue →'}
+            </button>
           </>
         )}
 
+        {/* STEP 2 — Select child */}
+        {step === 'select' && (
+          <>
+            <h1 style={{ fontSize: '22px', fontWeight: '500', color: '#26215C', marginBottom: '6px' }}>
+              Who are you?
+            </h1>
+            <p style={{ fontSize: '14px', color: '#888780', marginBottom: '28px' }}>
+              Tap your name to get started
+            </p>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+              gap: '12px',
+              marginBottom: '24px',
+            }}>
+              {children.map((child) => (
+                <button
+                  key={child.id}
+                  onClick={() => handleSelectChild(child)}
+                  style={{
+                    background: '#EEEDFE',
+                    border: '0.5px solid #AFA9EC',
+                    borderRadius: '12px',
+                    padding: '16px 12px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                  }}>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    background: '#7F77DD',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 8px',
+                    fontSize: '20px',
+                    fontWeight: '500',
+                    color: '#fff',
+                  }}>
+                    {child.full_name.charAt(0).toUpperCase()}
+                  </div>
+                  <p style={{ fontSize: '13px', fontWeight: '500', color: '#26215C', margin: '0 0 2px' }}>
+                    {child.full_name.split(' ')[0]}
+                  </p>
+                  <p style={{ fontSize: '11px', color: '#888780', margin: 0 }}>
+                    Grade {child.grade}
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => { setStep('code'); setFamilyCode(''); setCodeError('') }}
+              style={{ background: 'transparent', border: 'none', color: '#888780', fontSize: '13px', cursor: 'pointer' }}>
+              ← Wrong family code?
+            </button>
+          </>
+        )}
+
+        {/* STEP 3 — PIN */}
         {step === 'pin' && (
           <>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: '12px',
-              marginBottom: '28px',
-            }}>
+            <h1 style={{ fontSize: '22px', fontWeight: '500', color: '#26215C', marginBottom: '6px' }}>
+              Hi {selectedChild?.full_name.split(' ')[0]}!
+            </h1>
+            <p style={{ fontSize: '14px', color: '#888780', marginBottom: '28px' }}>
+              Enter your secret PIN
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '28px' }}>
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} style={{
                   width: '16px',
@@ -246,7 +295,7 @@ export default function ChildLoginPage() {
               ))}
             </div>
 
-            {error && (
+            {pinError && (
               <div style={{
                 background: '#FCEBEB',
                 border: '0.5px solid #F09595',
@@ -256,15 +305,11 @@ export default function ChildLoginPage() {
                 fontSize: '13px',
                 color: '#A32D2D',
               }}>
-                {error}
+                {pinError}
               </div>
             )}
 
-            <p style={{
-              fontSize: '12px',
-              color: '#888780',
-              marginBottom: '16px',
-            }}>
+            <p style={{ fontSize: '12px', color: '#888780', marginBottom: '16px' }}>
               Use keyboard numbers or tap below
             </p>
 
@@ -299,36 +344,17 @@ export default function ChildLoginPage() {
             </div>
 
             <button
-              onClick={() => {
-                setStep('select')
-                setPin('')
-                setError('')
-              }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#888780',
-                fontSize: '13px',
-                cursor: 'pointer',
-              }}>
+              onClick={() => { setStep('select'); setPin(''); setPinError('') }}
+              style={{ background: 'transparent', border: 'none', color: '#888780', fontSize: '13px', cursor: 'pointer' }}>
               ← Back to name selection
             </button>
           </>
         )}
 
-        <div style={{
-          marginTop: '24px',
-          paddingTop: '20px',
-          borderTop: '0.5px solid #e5e3db',
-        }}>
+        <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '0.5px solid #e5e3db' }}>
           <p style={{ fontSize: '12px', color: '#888780' }}>
             Are you a parent?{' '}
-            <a href="/login" style={{
-              color: '#7F77DD',
-              fontWeight: '500',
-            }}>
-              Parent login
-            </a>
+            <a href="/login" style={{ color: '#7F77DD', fontWeight: '500' }}>Parent login</a>
           </p>
         </div>
 

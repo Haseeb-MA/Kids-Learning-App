@@ -15,6 +15,7 @@ interface Child {
 interface Profile {
   full_name: string
   email: string
+  family_code: string
 }
 
 export default function ParentDashboard() {
@@ -42,7 +43,7 @@ export default function ParentDashboard() {
 
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('full_name, email, role')
+      .select('full_name, email, role, family_code')
       .eq('id', user.id)
       .single()
 
@@ -172,6 +173,45 @@ export default function ParentDashboard() {
 
       <div style={{ padding: '32px 40px' }}>
 
+{/* Family Code Card */}
+<div style={{
+  background: '#ffffff',
+  border: '0.5px solid #e5e3db',
+  borderRadius: '12px',
+  padding: '20px 24px',
+  marginBottom: '28px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  flexWrap: 'wrap',
+  gap: '12px',
+}}>
+  <div>
+    <p style={{ fontSize: '13px', color: '#888780', marginBottom: '4px' }}>
+      Your family code
+    </p>
+    <p style={{ fontSize: '28px', fontWeight: '500', color: '#26215C', letterSpacing: '6px', margin: 0 }}>
+      {profile?.family_code}
+    </p>
+    <p style={{ fontSize: '12px', color: '#888780', marginTop: '4px' }}>
+      Share this code with your children so they can log in
+    </p>
+  </div>
+  <button
+    onClick={() => navigator.clipboard.writeText(profile?.family_code || '')}
+    style={{
+      padding: '8px 18px',
+      background: '#EEEDFE',
+      border: '0.5px solid #AFA9EC',
+      borderRadius: '8px',
+      fontSize: '13px',
+      color: '#534AB7',
+      cursor: 'pointer',
+      fontWeight: '500',
+    }}>
+    Copy code
+  </button>
+</div>
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
