@@ -16,34 +16,76 @@ export default function ConfirmPage() {
 
   const handleConfirmation = async () => {
     try {
+      // Supabase puts the token in the URL hash — this exchanges it for a session
       const { data, error } = await supabase.auth.getSession()
 
-      if (error) {
-        setStatus('error')
-        setMessage('Something went wrong confirming your account. Please try again.')
+      // If no session yet, listen for the auth state change (SIGNED_IN fires after token exchange)
+      if (!data.session) {
+        const { data: listenData, error: listenError } = await new Promise<any>((resolve) => {
+          const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+              sub.subscription.unsubscribe()
+              resolve({ data: { session }, error: null })
+            }
+          })
+          // Timeout after 5s
+          setTimeout(() => resolve({ data: { session: null }, error: 'timeout' }), 5000)
+        })
+
+        if (!listenData?.session) {
+          setStatus('error')
+          setMessage('Confirmation link has expired or already been used. Please sign up again.')
+          return
+        }
+
+        await redirectByRole(listenData.session)
         return
       }
 
-      if (data.session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.session.user.id)
-          .single()
+      await redirectByRole(data.session)
 
-        setStatus('success')
-        setMessage('Your email has been confirmed successfully!')
+    } catch (err) {
+      setStatus('error')
+      setMessage('Something went wrong. Please try again.')
+    }
+  }
 
-        setTimeout(() => {
-          if (profile?.role === 'admin') {
-            router.push('/admin/dashboard')
-          } else if (profile?.role === 'parent') {
-            router.push('/parent/dashboard')
-          } else {
-            router.push('/login')
-          }
-        }, 2000)
+  const redirectByRole = async (session: any) => {
+    const userId = session.user.id
+    const userEmail = session.user.email
+
+    // Ensure profile exists (fallback in case trigger didn't fire)
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('role, family_code')
+      .eq('id', userId)
+      .single()
+
+    if (!existingProfile) {
+      // Trigger didn't fire — create the profile manually
+      await supabase.from('profiles').insert({
+        id: userId,
+        email: userEmail,
+        role: 'parent',
+      })
+    }
+
+    setStatus('success')
+    setMessage('Your email has been confirmed successfully!')
+
+    setTimeout(() => {
+      const role = existingProfile?.role ?? 'parent'
+      if (role === 'admin') {
+        router.push('/admin/dashboard')
+      } else if (role === 'parent') {
+        router.push('/parent/dashboard')
       } else {
+        router.push('/login')
+      }
+    }, 2000)
+  }
+
+     {
         setStatus('error')
         setMessage('Confirmation link has expired. Please sign up again.')
       }
