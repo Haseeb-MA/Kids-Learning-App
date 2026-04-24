@@ -23,7 +23,7 @@ export default function ConfirmPage() {
       .from('profiles')
       .select('role, family_code')
       .eq('id', userId)
-      .single()
+      .maybeSingle()
 
     if (!existingProfile) {
       await supabase.from('profiles').insert({
