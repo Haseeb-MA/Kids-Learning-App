@@ -14,42 +14,6 @@ export default function ConfirmPage() {
     handleConfirmation()
   }, [])
 
-  const handleConfirmation = async () => {
-    try {
-      // Supabase puts the token in the URL hash — this exchanges it for a session
-      const { data, error } = await supabase.auth.getSession()
-
-      // If no session yet, listen for the auth state change (SIGNED_IN fires after token exchange)
-      if (!data.session) {
-        const { data: listenData, error: listenError } = await new Promise<any>((resolve) => {
-          const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session) {
-              sub.subscription.unsubscribe()
-              resolve({ data: { session }, error: null })
-            }
-          })
-          // Timeout after 5s
-          setTimeout(() => resolve({ data: { session: null }, error: 'timeout' }), 5000)
-        })
-
-        if (!listenData?.session) {
-          setStatus('error')
-          setMessage('Confirmation link has expired or already been used. Please sign up again.')
-          return
-        }
-
-        await redirectByRole(listenData.session)
-        return
-      }
-
-      await redirectByRole(data.session)
-
-    } catch (err) {
-      setStatus('error')
-      setMessage('Something went wrong. Please try again.')
-    }
-  }
-
   const redirectByRole = async (session: any) => {
     const userId = session.user.id
     const userEmail = session.user.email
@@ -62,7 +26,6 @@ export default function ConfirmPage() {
       .single()
 
     if (!existingProfile) {
-      // Trigger didn't fire — create the profile manually
       await supabase.from('profiles').insert({
         id: userId,
         email: userEmail,
@@ -85,10 +48,34 @@ export default function ConfirmPage() {
     }, 2000)
   }
 
-     {
-        setStatus('error')
-        setMessage('Confirmation link has expired. Please sign up again.')
+  const handleConfirmation = async () => {
+    try {
+      const { data, error } = await supabase.auth.getSession()
+
+      if (data.session) {
+        await redirectByRole(data.session)
+        return
       }
+
+      // No session yet — wait for Supabase to exchange the token from the URL hash
+      const result = await new Promise<any>((resolve) => {
+        const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+          if (event === 'SIGNED_IN' && session) {
+            sub.subscription.unsubscribe()
+            resolve({ session })
+          }
+        })
+        setTimeout(() => resolve({ session: null }), 5000)
+      })
+
+      if (!result.session) {
+        setStatus('error')
+        setMessage('Confirmation link has expired or already been used. Please sign up again.')
+        return
+      }
+
+      await redirectByRole(result.session)
+
     } catch (err) {
       setStatus('error')
       setMessage('Something went wrong. Please try again.')
@@ -128,12 +115,7 @@ export default function ConfirmPage() {
 
         {status === 'loading' && (
           <>
-            <h1 style={{
-              fontSize: '20px',
-              fontWeight: '500',
-              color: '#26215C',
-              marginBottom: '8px',
-            }}>
+            <h1 style={{ fontSize: '20px', fontWeight: '500', color: '#26215C', marginBottom: '8px' }}>
               Confirming your account...
             </h1>
             <p style={{ fontSize: '14px', color: '#888780' }}>
@@ -144,18 +126,8 @@ export default function ConfirmPage() {
 
         {status === 'success' && (
           <>
-            <div style={{
-              fontSize: '40px',
-              marginBottom: '16px',
-            }}>
-              🎉
-            </div>
-            <h1 style={{
-              fontSize: '20px',
-              fontWeight: '500',
-              color: '#26215C',
-              marginBottom: '8px',
-            }}>
+            <div style={{ fontSize: '40px', marginBottom: '16px' }}>🎉</div>
+            <h1 style={{ fontSize: '20px', fontWeight: '500', color: '#26215C', marginBottom: '8px' }}>
               Email confirmed!
             </h1>
             <p style={{ fontSize: '14px', color: '#888780', marginBottom: '16px' }}>
@@ -170,19 +142,10 @@ export default function ConfirmPage() {
         {status === 'error' && (
           <>
             <div style={{ fontSize: '40px', marginBottom: '16px' }}>😕</div>
-            <h1 style={{
-              fontSize: '20px',
-              fontWeight: '500',
-              color: '#26215C',
-              marginBottom: '8px',
-            }}>
+            <h1 style={{ fontSize: '20px', fontWeight: '500', color: '#26215C', marginBottom: '8px' }}>
               Something went wrong
             </h1>
-            <p style={{
-              fontSize: '14px',
-              color: '#888780',
-              marginBottom: '24px',
-            }}>
+            <p style={{ fontSize: '14px', color: '#888780', marginBottom: '24px' }}>
               {message}
             </p>
             <button
