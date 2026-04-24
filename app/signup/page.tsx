@@ -34,42 +34,30 @@ export default function SignupPage() {
       return
     }
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-
-    if (signUpError) {
-      setError(signUpError.message)
-      setLoading(false)
-      return
+  const { data, error: signUpError } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    data: {
+      full_name: fullName,
     }
+  }
+})
 
-    if (data.user) {
-      if (!data.session) {
-        setLoading(false)
-        setShowConfirmation(true)
-        return
-      }
+if (signUpError) {
+  setError(signUpError.message)
+  setLoading(false)
+  return
+}
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          email,
-          full_name: fullName,
-          role: 'parent',
-          is_active: true,
-        })
-
-      if (profileError) {
-        setError(profileError.message)
-        setLoading(false)
-        return
-      }
-
-      router.push('/parent/dashboard')
-    }
+if (data.user) {
+  if (!data.session) {
+    setLoading(false)
+    setShowConfirmation(true)
+    return
+  }
+  router.push('/parent/dashboard')
+}
 
     setLoading(false)
   }
