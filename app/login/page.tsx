@@ -99,7 +99,9 @@ const handleForgotPassword = async () => {
         border: '0.5px solid #e5e3db',
       }}>
 
-        <div style={{
+        <div 
+        onClick={() => router.push('/')}
+        style={{
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
