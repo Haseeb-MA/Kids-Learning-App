@@ -169,6 +169,7 @@ if (data.user) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            cursor: 'pointer',
           }}>
             <span style={{ color: '#fff', fontSize: '18px' }}>★</span>
           </div>
