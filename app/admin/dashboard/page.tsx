@@ -77,9 +77,9 @@ export default function AdminDashboard() {
       .order('created_at', { ascending: false })
 
     const { data: childrenData } = await supabase
-      .from('children')
-      .select('*')
-      .order('created_at', { ascending: false })
+  .from('children')
+  .select('*, profiles(full_name, email)')
+  .order('created_at', { ascending: false })
 
     const { data: messagesData } = await supabase
       .from('contact_messages')
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
         <tr style={{ background: '#f5f4f0' }}>
           <th style={thStyle}>Name</th>
           <th style={thStyle}>Grade</th>
-          <th style={thStyle}>Parent ID</th>
+          <th style={thStyle}>Parent</th>
           <th style={thStyle}>Status</th>
           <th style={thStyle}>Action</th>
         </tr>
@@ -233,9 +233,9 @@ export default function AdminDashboard() {
                 Grade {child.grade}
               </span>
             </td>
-            <td style={tdStyle} title={child.parent_id}>
-              {child.parent_id.substring(0, 8)}...
-            </td>
+            <td style={tdStyle}>
+  {child.profiles?.full_name || child.profiles?.email || '—'}
+</td>
             <td style={tdStyle}>
               <span style={{
                 background: child.is_active ? '#E1F5EE' : '#FCEBEB',
