@@ -100,7 +100,7 @@ const handleForgotPassword = async () => {
       }}>
 
         <div 
-        onClick={() => router.push('/')}
+//        onClick={() => router.push('/')}
         style={{
           display: 'flex',
           alignItems: 'center',
