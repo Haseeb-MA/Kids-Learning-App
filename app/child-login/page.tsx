@@ -116,16 +116,13 @@ export default function ChildLoginPage() {
   }, [step, handlePinPress, handleDelete])
 
   return (
-    <div 
-    onClick={() => router.push('/')}
-    style={{
+    <div style={{
       minHeight: '100vh',
       background: '#EEEDFE',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       padding: '20px',
-      cursor: 'pointer',
     }}>
       <div style={{
         background: '#ffffff',
@@ -137,16 +134,20 @@ export default function ChildLoginPage() {
         textAlign: 'center',
       }}>
 
-        <div style={{
-          width: '52px',
-          height: '52px',
-          borderRadius: '14px',
-          background: '#7F77DD',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 16px',
-        }}>
+        {/* Logo — clicking this goes home */}
+        <div
+          onClick={() => router.push('/')}
+          style={{
+            width: '52px',
+            height: '52px',
+            borderRadius: '14px',
+            background: '#7F77DD',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px',
+            cursor: 'pointer',
+          }}>
           <span style={{ color: '#fff', fontSize: '26px' }}>★</span>
         </div>
 
