@@ -16,6 +16,7 @@ interface Lesson {
   title: string
   content: string
   order_number: number
+  youtube_url?: string
 }
 
 interface Quiz {
@@ -52,6 +53,7 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
   const [showAddLesson, setShowAddLesson] = useState(false)
   const [lessonTitle, setLessonTitle] = useState('')
   const [lessonContent, setLessonContent] = useState('')
+  const [lessonYoutubeUrl, setLessonYoutubeUrl] = useState('')
   const [savingLesson, setSavingLesson] = useState(false)
   const [generatingLesson, setGeneratingLesson] = useState(false)
   const [generatingQuestions, setGeneratingQuestions] = useState(false)
@@ -60,6 +62,11 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [editingQuestion, setEditingQuestion] = useState<number | null>(null)
+
+  // For editing youtube url on existing lesson
+  const [editingYoutubeUrl, setEditingYoutubeUrl] = useState(false)
+  const [editYoutubeValue, setEditYoutubeValue] = useState('')
+  const [savingYoutubeUrl, setSavingYoutubeUrl] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -141,6 +148,7 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
         content: lessonContent.trim(),
         grade_level: subject?.grade_level,
         order_number: lessons.length + 1,
+        youtube_url: lessonYoutubeUrl.trim() || null,
       })
       .select()
       .single()
@@ -153,12 +161,37 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
 
     setLessonTitle('')
     setLessonContent('')
+    setLessonYoutubeUrl('')
     setShowAddLesson(false)
     setSuccess('Lesson saved successfully!')
     setTimeout(() => setSuccess(''), 3000)
     await loadData()
     if (data) setActiveLesson(data)
     setSavingLesson(false)
+  }
+
+  const handleSaveYoutubeUrl = async () => {
+    if (!activeLesson) return
+    setSavingYoutubeUrl(true)
+
+    const { error: updateError } = await supabase
+      .from('lessons')
+      .update({ youtube_url: editYoutubeValue.trim() || null })
+      .eq('id', activeLesson.id)
+
+    if (updateError) {
+      setError(updateError.message)
+      setSavingYoutubeUrl(false)
+      return
+    }
+
+    const updated = { ...activeLesson, youtube_url: editYoutubeValue.trim() || undefined }
+    setActiveLesson(updated)
+    setLessons(prev => prev.map(l => l.id === activeLesson.id ? updated : l))
+    setEditingYoutubeUrl(false)
+    setSuccess('YouTube URL updated!')
+    setTimeout(() => setSuccess(''), 3000)
+    setSavingYoutubeUrl(false)
   }
 
   const handleGenerateQuestions = async () => {
@@ -265,11 +298,6 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
 
   const getLessonQuizzes = (lessonId: string) => {
     return quizzes.filter(q => q.lesson_id === lessonId)
-  }
-
-  const getOptionLabel = (correct: string) => {
-    const map: Record<string, string> = { a: 'A', b: 'B', c: 'C', d: 'D' }
-    return map[correct] || correct
   }
 
   if (loading) {
@@ -384,6 +412,7 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
               Add new lesson
             </h2>
 
+            {/* Lesson Title */}
             <div style={{ marginBottom: '14px' }}>
               <label style={{
                 fontSize: '13px',
@@ -426,7 +455,8 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
               </div>
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
+            {/* Lesson Content */}
+            <div style={{ marginBottom: '14px' }}>
               <label style={{
                 fontSize: '13px',
                 color: '#444441',
@@ -453,12 +483,46 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
                   boxSizing: 'border-box',
                 }}
               />
-              <p style={{
-                fontSize: '12px',
-                color: '#888780',
-                marginTop: '4px',
-              }}>
+              <p style={{ fontSize: '12px', color: '#888780', marginTop: '4px' }}>
                 {lessonContent.length} characters
+              </p>
+            </div>
+
+            {/* ── YouTube URL field ── */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                fontSize: '13px',
+                color: '#444441',
+                display: 'block',
+                marginBottom: '6px',
+              }}>
+                🎬 YouTube video URL
+                <span style={{
+                  marginLeft: '6px',
+                  fontSize: '11px',
+                  color: '#888780',
+                  fontWeight: 'normal',
+                }}>
+                  (optional)
+                </span>
+              </label>
+              <input
+                type="url"
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={lessonYoutubeUrl}
+                onChange={(e) => setLessonYoutubeUrl(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  border: '0.5px solid #D3D1C7',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <p style={{ fontSize: '12px', color: '#888780', marginTop: '4px' }}>
+                This video will appear below the lesson content for students to watch before the quiz
               </p>
             </div>
 
@@ -482,6 +546,7 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
                   setShowAddLesson(false)
                   setLessonTitle('')
                   setLessonContent('')
+                  setLessonYoutubeUrl('')
                   setError('')
                 }}
                 style={{
@@ -505,6 +570,7 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
           gap: '20px',
         }}>
 
+          {/* ── Lesson list ── */}
           <div>
             <h2 style={{
               fontSize: '14px',
@@ -522,9 +588,7 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
                 padding: '24px',
                 textAlign: 'center',
               }}>
-                <p style={{ fontSize: '13px', color: '#888780' }}>
-                  No lessons yet
-                </p>
+                <p style={{ fontSize: '13px', color: '#888780' }}>No lessons yet</p>
                 <button
                   onClick={() => setShowAddLesson(true)}
                   style={{
@@ -541,15 +605,14 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
                 </button>
               </div>
             ) : (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-              }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {lessons.map((lesson) => (
                   <div
                     key={lesson.id}
-                    onClick={() => setActiveLesson(lesson)}
+                    onClick={() => {
+                      setActiveLesson(lesson)
+                      setEditingYoutubeUrl(false)
+                    }}
                     style={{
                       background: activeLesson?.id === lesson.id ? '#EEEDFE' : '#ffffff',
                       border: activeLesson?.id === lesson.id
@@ -567,21 +630,33 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
                     }}>
                       {lesson.title}
                     </p>
-                    <p style={{
-                      fontSize: '11px',
-                      color: '#888780',
-                    }}>
-                      {getLessonQuizzes(lesson.id).length} quiz questions
-                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <p style={{ fontSize: '11px', color: '#888780', margin: 0 }}>
+                        {getLessonQuizzes(lesson.id).length} quiz questions
+                      </p>
+                      {lesson.youtube_url && (
+                        <span style={{
+                          fontSize: '10px',
+                          color: '#534AB7',
+                          background: '#EEEDFE',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                        }}>
+                          🎬 video
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
+          {/* ── Lesson detail ── */}
           <div>
             {activeLesson ? (
               <>
+                {/* Lesson content card */}
                 <div style={{
                   background: '#ffffff',
                   border: '0.5px solid #e5e3db',
@@ -617,16 +692,126 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
                       Delete lesson
                     </button>
                   </div>
+
                   <p style={{
                     fontSize: '14px',
                     color: '#444441',
                     lineHeight: '1.7',
                     whiteSpace: 'pre-wrap',
+                    marginBottom: '20px',
                   }}>
                     {activeLesson.content}
                   </p>
+
+                  {/* ── YouTube URL section ── */}
+                  <div style={{
+                    borderTop: '0.5px solid #e5e3db',
+                    paddingTop: '16px',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '8px',
+                    }}>
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        color: '#444441',
+                      }}>
+                        🎬 YouTube video
+                      </span>
+                      {!editingYoutubeUrl && (
+                        <button
+                          onClick={() => {
+                            setEditingYoutubeUrl(true)
+                            setEditYoutubeValue(activeLesson.youtube_url || '')
+                          }}
+                          style={{
+                            padding: '4px 10px',
+                            background: 'transparent',
+                            border: '0.5px solid #AFA9EC',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            color: '#534AB7',
+                            cursor: 'pointer',
+                          }}>
+                          {activeLesson.youtube_url ? 'Edit URL' : '+ Add URL'}
+                        </button>
+                      )}
+                    </div>
+
+                    {editingYoutubeUrl ? (
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input
+                          type="url"
+                          placeholder="https://www.youtube.com/watch?v=..."
+                          value={editYoutubeValue}
+                          onChange={(e) => setEditYoutubeValue(e.target.value)}
+                          style={{
+                            flex: 1,
+                            padding: '8px 12px',
+                            border: '0.5px solid #AFA9EC',
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                            outline: 'none',
+                          }}
+                        />
+                        <button
+                          onClick={handleSaveYoutubeUrl}
+                          disabled={savingYoutubeUrl}
+                          style={{
+                            padding: '8px 14px',
+                            background: '#7F77DD',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}>
+                          {savingYoutubeUrl ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          onClick={() => setEditingYoutubeUrl(false)}
+                          style={{
+                            padding: '8px 12px',
+                            background: 'transparent',
+                            border: '0.5px solid #D3D1C7',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            color: '#888780',
+                            cursor: 'pointer',
+                          }}>
+                          Cancel
+                        </button>
+                      </div>
+                    ) : activeLesson.youtube_url ? (
+                      <a
+                        href={activeLesson.youtube_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: '12px',
+                          color: '#534AB7',
+                          textDecoration: 'none',
+                          background: '#EEEDFE',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          display: 'inline-block',
+                          wordBreak: 'break-all',
+                        }}>
+                        {activeLesson.youtube_url}
+                      </a>
+                    ) : (
+                      <p style={{ fontSize: '12px', color: '#888780', margin: 0 }}>
+                        No video added yet
+                      </p>
+                    )}
+                  </div>
                 </div>
 
+                {/* Quiz questions card */}
                 <div style={{
                   background: '#ffffff',
                   border: '0.5px solid #e5e3db',
@@ -732,10 +917,7 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
                       borderRadius: '10px',
                       marginBottom: '12px',
                     }}>
-                      <div style={{
-                        display: 'flex',
-                        gap: '4px',
-                      }}>
+                      <div style={{ display: 'flex', gap: '4px' }}>
                         {[0, 1, 2].map(i => (
                           <div key={i} style={{
                             width: '8px',
@@ -866,10 +1048,7 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
                                         outline: 'none',
                                       }}
                                     />
-                                    <span style={{
-                                      fontSize: '11px',
-                                      color: '#888780',
-                                    }}>
+                                    <span style={{ fontSize: '11px', color: '#888780' }}>
                                       {opt.toUpperCase()}
                                     </span>
                                   </div>
@@ -1011,7 +1190,6 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
                       </button>
                     </>
                   )}
-
                 </div>
               </>
             ) : (
