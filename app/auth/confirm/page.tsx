@@ -83,13 +83,16 @@ export default function ConfirmPage() {
   }
 
   return (
-    <div style={{
+    <div 
+    onClick={() => router.push('/')}
+    style={{
       minHeight: '100vh',
       background: '#EEEDFE',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       padding: '20px',
+        cursor: 'pointer',
     }}>
       <div style={{
         background: '#ffffff',
