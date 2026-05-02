@@ -16,6 +16,7 @@ interface Profile {
   full_name: string
   email: string
   family_code: string
+  is_content_manager: boolean
 }
 
 export default function ParentDashboard() {
@@ -44,7 +45,7 @@ export default function ParentDashboard() {
     // AFTER
 const { data: profileData } = await supabase
   .from('profiles')
-  .select('full_name, email, role, family_code')
+  .select('full_name, email, role, family_code, is_content_manager')
   .eq('id', user.id)
   .maybeSingle()
 
@@ -164,10 +165,26 @@ if (profileData?.role !== 'parent') {
             BrightMinds
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontSize: '13px', color: '#888780' }}>
             {profile?.full_name}
           </span>
+          {profile?.is_content_manager && (
+            <button
+              onClick={() => router.push('/content-manager/dashboard')}
+              style={{
+                padding: '7px 16px',
+                background: '#EEEDFE',
+                border: '0.5px solid #AFA9EC',
+                borderRadius: '8px',
+                color: '#534AB7',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontWeight: '500',
+              }}>
+              Content manager
+            </button>
+          )}
           <button
             onClick={handleLogout}
             style={{
