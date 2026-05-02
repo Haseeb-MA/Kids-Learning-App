@@ -21,7 +21,7 @@ export default function ConfirmPage() {
     // Ensure profile exists (fallback in case trigger didn't fire)
     const { data: existingProfile } = await supabase
       .from('profiles')
-      .select('role, family_code')
+      .select('role, family_code, is_content_manager')
       .eq('id', userId)
       .maybeSingle()
 
@@ -40,6 +40,8 @@ export default function ConfirmPage() {
       const role = existingProfile?.role ?? 'parent'
       if (role === 'admin') {
         router.push('/admin/dashboard')
+      } else if (role === 'parent' && existingProfile?.is_content_manager) {
+        router.push('/content-manager/dashboard')
       } else if (role === 'parent') {
         router.push('/parent/dashboard')
       } else {

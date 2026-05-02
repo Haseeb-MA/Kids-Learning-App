@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, use } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 interface Subject {
@@ -45,6 +45,10 @@ interface GeneratedQuestion {
 export default function SubjectDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const backUrl = searchParams.get('from') === 'content-manager'
+    ? '/content-manager/dashboard'
+    : '/admin/content'
   const [subject, setSubject] = useState<Subject | null>(null)
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [quizzes, setQuizzes] = useState<Quiz[]>([])
@@ -326,7 +330,7 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
-            onClick={() => router.push('/admin/content')}
+            onClick={() => router.push(backUrl)}
             style={{
               background: 'transparent',
               border: 'none',

@@ -45,21 +45,21 @@ const [forgotMessage, setForgotMessage] = useState('')
         await new Promise(resolve => setTimeout(resolve, 500))
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, is_content_manager')
         .eq('id', data.user.id)
         .maybeSingle()
 
-      // AFTER
-if (profile?.role === 'admin') {
-  router.push('/admin/dashboard')
-} else if (profile?.role === 'parent') {
-  router.push('/parent/dashboard')
-} else if (profile?.role === 'child') {
-  router.push('/child/dashboard')
-} else {
-  // No profile yet — default to parent dashboard (new signup)
-  router.push('/parent/dashboard')
-}
+      if (profile?.role === 'admin') {
+        router.push('/admin/dashboard')
+      } else if (profile?.role === 'parent' && profile?.is_content_manager) {
+        router.push('/content-manager/dashboard')
+      } else if (profile?.role === 'parent') {
+        router.push('/parent/dashboard')
+      } else if (profile?.role === 'child') {
+        router.push('/child/dashboard')
+      } else {
+        router.push('/parent/dashboard')
+      }
     }
 
     setLoading(false)
@@ -248,7 +248,7 @@ const handleForgotPassword = async () => {
           fontSize: '13px',
           color: '#888780',
         }}>
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/signup" style={{
             color: '#7F77DD',
             fontWeight: '500',

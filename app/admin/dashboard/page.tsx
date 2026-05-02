@@ -10,6 +10,7 @@ interface Profile {
   full_name: string
   role: string
   is_active: boolean
+  is_content_manager: boolean
   created_at: string
 }
 
@@ -115,6 +116,14 @@ export default function AdminDashboard() {
     await loadData()
   }
 
+  const toggleContentManager = async (id: string, current: boolean) => {
+    await supabase
+      .from('profiles')
+      .update({ is_content_manager: !current })
+      .eq('id', id)
+    await loadData()
+  }
+
   const handleReadMessage = async (id: string, currentStatus: boolean) => {
     await supabase
       .from('contact_messages')
@@ -138,13 +147,14 @@ export default function AdminDashboard() {
           <th style={thStyle}>Email</th>
           <th style={thStyle}>Joined</th>
           <th style={thStyle}>Status</th>
+          <th style={thStyle}>Content Manager</th>
           <th style={thStyle}>Action</th>
         </tr>
       </thead>
       <tbody>
         {profiles.length === 0 ? (
           <tr>
-            <td colSpan={5} style={{
+            <td colSpan={6} style={{
               textAlign: 'center',
               padding: '40px',
               color: '#888780',
@@ -172,6 +182,22 @@ export default function AdminDashboard() {
               }}>
                 {profile.is_active ? 'Active' : 'Inactive'}
               </span>
+            </td>
+            <td style={tdStyle}>
+              <button
+                onClick={() => toggleContentManager(profile.id, profile.is_content_manager)}
+                style={{
+                  padding: '5px 12px',
+                  border: '0.5px solid',
+                  borderColor: profile.is_content_manager ? '#AFA9EC' : '#D3D1C7',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  background: profile.is_content_manager ? '#EEEDFE' : 'transparent',
+                  cursor: 'pointer',
+                  color: profile.is_content_manager ? '#534AB7' : '#888780',
+                }}>
+                {profile.is_content_manager ? 'Enabled' : 'Grant'}
+              </button>
             </td>
             <td style={tdStyle}>
               <button
