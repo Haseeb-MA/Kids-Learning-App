@@ -1,38 +1,51 @@
 export default function Grades() {
-  const grades = [
-    'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
-    'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'
+  const stats = [
+    { value: 'Grades 1–10', label: 'All school years covered', icon: '🎓' },
+    { value: '3 Subjects', label: 'Maths, English & Science', icon: '📚' },
+    { value: '50+ Topics', label: 'Across all grades', icon: '📝' },
+    { value: 'AI Helper', label: 'Homework hints on demand', icon: '🤖' },
+    { value: '4 Games', label: 'Brain breaks between lessons', icon: '🎮' },
   ]
 
   return (
     <section style={{
-      padding: '20px 40px',
-      background: '#F1EFE8',
+      background: '#ffffff',
+      borderTop: '0.5px solid #e5e3db',
+      borderBottom: '0.5px solid #e5e3db',
+      padding: '0 40px',
     }}>
       <div style={{
         display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
+        justifyContent: 'center',
         flexWrap: 'wrap',
       }}>
-        <span style={{
-          fontSize: '13px',
-          color: '#888780',
-          marginRight: '4px',
-        }}>
-          Grades covered:
-        </span>
-        {grades.map((grade) => (
-          <span key={grade} style={{
-            background: '#ffffff',
-            border: '0.5px solid #D3D1C7',
-            borderRadius: '20px',
-            padding: '4px 12px',
-            fontSize: '12px',
-            color: '#444441',
+        {stats.map((stat, index) => (
+          <div key={stat.value} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '24px 40px',
+            borderRight: index < stats.length - 1 ? '0.5px solid #e5e3db' : 'none',
           }}>
-            {grade}
-          </span>
+            <span style={{ fontSize: '24px' }}>{stat.icon}</span>
+            <div>
+              <p style={{
+                fontSize: '15px',
+                fontWeight: '500',
+                color: '#26215C',
+                margin: '0 0 2px',
+              }}>
+                {stat.value}
+              </p>
+              <p style={{
+                fontSize: '12px',
+                color: '#888780',
+                margin: 0,
+              }}>
+                {stat.label}
+              </p>
+            </div>
+          </div>
         ))}
       </div>
     </section>
