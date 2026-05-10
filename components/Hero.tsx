@@ -41,7 +41,7 @@ export default function Hero() {
             lineHeight: '1.2',
             marginBottom: '18px',
           }}>
-            Your child can go from confused to confident
+            Where struggle meets success
           </h1>
 
           <p style={{
