@@ -41,7 +41,7 @@ export default function Hero() {
             lineHeight: '1.2',
             marginBottom: '18px',
           }}>
-            Where training your brain is the best game.
+            Where training your brain is the best game. For my kids, by a parent.
           </h1>
 
           <p style={{
