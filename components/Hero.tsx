@@ -41,7 +41,7 @@ export default function Hero() {
             lineHeight: '1.2',
             marginBottom: '18px',
           }}>
-            Where struggle meets success
+            Where training your brain is the best game.
           </h1>
 
           <p style={{
