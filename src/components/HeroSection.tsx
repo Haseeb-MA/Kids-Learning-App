@@ -1,4 +1,3 @@
-```typescript
 import React from 'react';
 
 const HeroSection: React.FC = () => {
@@ -13,4 +12,3 @@ const HeroSection: React.FC = () => {
 };
 
 export default HeroSection;
-```
