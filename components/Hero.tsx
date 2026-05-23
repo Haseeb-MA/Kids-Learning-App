@@ -41,7 +41,7 @@ export default function Hero() {
             lineHeight: '1.2',
             marginBottom: '18px',
           }}>
-            Where practicing becomes winning!
+            Learning Made fun
           </h1>
 
           <p style={{
