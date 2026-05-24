@@ -62,7 +62,7 @@ export default function Footer() {
             }}>
               <span style={{ color: '#fff', fontSize: '15px' }}>★</span>
             </div>
-            <span style={{ color: '#ffffff', fontSize: '15px', fontWeight: '500' }}>BrightMinds</span>
+            <span style={{ color: '#ffffff', fontSize: '15px', fontWeight: '500' }}>BrainyBuddies</span>
           </div>
           <p style={{
             fontSize: '13px',
@@ -113,7 +113,7 @@ export default function Footer() {
         gap: '10px',
       }}>
         <span style={{ fontSize: '12px', color: '#6B6494' }}>
-          © 2026 BrightMinds · All rights reserved
+          © 2026 BrainyBuddies · All rights reserved
         </span>
         <div style={{ display: 'flex', gap: '20px' }}>
           {[
