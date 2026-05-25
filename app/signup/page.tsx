@@ -15,7 +15,7 @@ export default function SignupPage() {
   const [showConfirmation, setShowConfirmation] = useState(false)
 
   useEffect(() => {
-    document.title = 'Sign up · BrightMinds'
+    document.title = 'Sign up · BrainyBuddies'
   }, [])
 
   const handleSignup = async () => {
@@ -178,7 +178,7 @@ if (data.user) {
             fontWeight: '500',
             color: '#2C2C2A',
           }}>
-            BrightMinds
+            BrainyBuddies
           </span>
         </div>
 
