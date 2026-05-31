@@ -31,7 +31,7 @@ export default function Hero() {
             borderRadius: '20px',
             marginBottom: '20px',
           }}>
-            Grade 1 to Grade 10 · Maths · English · Science
+            Where learning becomes adventurous
           </div>
 
           <h1 style={{
