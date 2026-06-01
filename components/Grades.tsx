@@ -1,6 +1,6 @@
 export default function Grades() {
   const stats = [
-    { value: 'Grade 1 to Grade 5', label: 'All school years covered', icon: '🎓' },
+    { value: 'Grade 1 to Grade 10', label: 'All school years covered', icon: '🎓' },
     { value: '3 Subjects', label: 'Maths, English & Science', icon: '📚' },
     { value: '100+ Topics', label: 'Across all grades', icon: '📝' },
     { value: 'AI Helper', label: 'Homework hints on demand', icon: '🤖' },
