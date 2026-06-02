@@ -28,10 +28,18 @@ export default function AdminContent() {
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
   const [toggling, setToggling] = useState<string | null>(null)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   useEffect(() => {
     checkAdminAndLoad()
   }, [])
+
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [toastMessage])
 
   const checkAdminAndLoad = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -122,16 +130,22 @@ export default function AdminContent() {
 
     const newValue = !current
 
-    const { error: updateError } = await supabase
-      .from('subjects')
-      .update({ is_active: newValue })
-      .eq('id', id)
+    try {
+      const { error: updateError } = await supabase
+        .from('subjects')
+        .update({ is_active: newValue })
+        .eq('id', id)
 
-    if (!updateError) {
+      if (updateError) {
+        throw updateError
+      }
+
       setSubjects(prev =>
         prev.map(s => s.id === id ? { ...s, is_active: newValue } : s)
       )
       await loadSubjects()
+    } catch {
+      setToastMessage('Permission denied — contact your administrator')
     }
 
     setToggling(null)
@@ -185,6 +199,23 @@ export default function AdminContent() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f4f0' }}>
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: '#FCEBEB',
+          border: '0.5px solid #F09595',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '13px',
+          color: '#A32D2D',
+          zIndex: 1000,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        }}>
+          {toastMessage}
+        </div>
+      )}
 
       <nav style={{
         background: '#26215C',
