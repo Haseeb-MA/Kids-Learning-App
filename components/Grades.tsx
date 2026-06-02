@@ -4,7 +4,7 @@ export default function Grades() {
     { value: 'Subjects', label: 'Maths, English & Science', icon: '📚' },
     { value: '100+ Topics', label: 'Across all grades', icon: '📝' },
     { value: 'AI Helper', label: 'Homework hints on demand', icon: '🤖' },
-    { value: '4 Games', label: 'Brain breaks between lessons', icon: '🎮' },
+    { value: 'Games', label: 'Brain breaks between lessons', icon: '🎮' },
   ]
 
   return (

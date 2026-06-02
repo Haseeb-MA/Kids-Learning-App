@@ -27,6 +27,7 @@ export default function AdminContent() {
   const [newSubjectGrade, setNewSubjectGrade] = useState('1')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
+  const [toggling, setToggling] = useState<string | null>(null)
 
   useEffect(() => {
     checkAdminAndLoad()
@@ -116,11 +117,24 @@ export default function AdminContent() {
   }
 
   const toggleSubjectActive = async (id: string, current: boolean) => {
-    await supabase
+    if (toggling === id) return
+    setToggling(id)
+
+    const newValue = !current
+
+    const { error: updateError } = await supabase
       .from('subjects')
-      .update({ is_active: !current })
+      .update({ is_active: newValue })
       .eq('id', id)
-    await loadSubjects()
+
+    if (!updateError) {
+      setSubjects(prev =>
+        prev.map(s => s.id === id ? { ...s, is_active: newValue } : s)
+      )
+      await loadSubjects()
+    }
+
+    setToggling(null)
   }
 
   const getCategoryIcon = (category: string) => {
@@ -606,16 +620,18 @@ export default function AdminContent() {
                         </button>
                         <button
                           onClick={() => toggleSubjectActive(subject.id, subject.is_active)}
+                          disabled={toggling === subject.id}
                           style={{
                             padding: '5px 10px',
                             background: 'transparent',
                             border: '0.5px solid #D3D1C7',
                             borderRadius: '6px',
                             fontSize: '12px',
-                            color: subject.is_active ? '#A32D2D' : '#085041',
-                            cursor: 'pointer',
+                            color: toggling === subject.id ? '#888780' : subject.is_active ? '#A32D2D' : '#085041',
+                            cursor: toggling === subject.id ? 'not-allowed' : 'pointer',
+                            opacity: toggling === subject.id ? 0.6 : 1,
                           }}>
-                          {subject.is_active ? 'Disable' : 'Enable'}
+                          {toggling === subject.id ? '...' : subject.is_active ? 'Disable' : 'Enable'}
                         </button>
                       </div>
                     </td>
