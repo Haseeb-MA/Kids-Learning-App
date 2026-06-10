@@ -29,6 +29,8 @@ export default function AdminContent() {
   const [error, setError] = useState('')
   const [toggling, setToggling] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [sortColumn, setSortColumn] = useState<string>('name')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   useEffect(() => {
     checkAdminAndLoad()
@@ -167,6 +169,20 @@ export default function AdminContent() {
       case 'Science': return '#FAEEDA'
       default: return '#EEEDFE'
     }
+  }
+
+  const sortSubjects = (subjects: any[]) => {
+    return [...subjects].sort((a, b) => {
+      const aVal = a[sortColumn]
+      const bVal = b[sortColumn]
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+      }
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal
+      }
+      return 0
+    })
   }
 
   const filteredSubjects = subjects.filter(s => {
@@ -534,11 +550,47 @@ export default function AdminContent() {
           }}>
             <thead>
               <tr style={{ background: '#f5f4f0' }}>
-                <th style={thStyle}>Subject</th>
-                <th style={thStyle}>Grade</th>
+                <th
+                  style={{ ...thStyle, cursor: 'pointer' }}
+                  onClick={() => {
+                    if (sortColumn === 'name') {
+                      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+                    } else {
+                      setSortColumn('name')
+                      setSortDirection('asc')
+                    }
+                  }}
+                >
+                  Subject{sortColumn === 'name' && (sortDirection === 'asc' ? ' ▲' : ' ▼')}
+                </th>
+                <th
+                  style={{ ...thStyle, cursor: 'pointer' }}
+                  onClick={() => {
+                    if (sortColumn === 'grade_level') {
+                      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+                    } else {
+                      setSortColumn('grade_level')
+                      setSortDirection('asc')
+                    }
+                  }}
+                >
+                  Grade{sortColumn === 'grade_level' && (sortDirection === 'asc' ? ' ▲' : ' ▼')}
+                </th>
                 <th style={thStyle}>Lessons</th>
                 <th style={thStyle}>Quizzes</th>
-                <th style={thStyle}>Status</th>
+                <th
+                  style={{ ...thStyle, cursor: 'pointer' }}
+                  onClick={() => {
+                    if (sortColumn === 'is_active') {
+                      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+                    } else {
+                      setSortColumn('is_active')
+                      setSortDirection('asc')
+                    }
+                  }}
+                >
+                  Status{sortColumn === 'is_active' && (sortDirection === 'asc' ? ' ▲' : ' ▼')}
+                </th>
                 <th style={thStyle}>Actions</th>
               </tr>
             </thead>
@@ -555,7 +607,7 @@ export default function AdminContent() {
                   </td>
                 </tr>
               ) : (
-                filteredSubjects.map((subject, index) => (
+                sortSubjects(filteredSubjects).map((subject, index) => (
                   <tr key={subject.id} style={{
                     borderTop: index === 0 ? 'none' : '0.5px solid #e5e3db',
                   }}>
