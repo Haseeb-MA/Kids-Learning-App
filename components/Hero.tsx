@@ -41,7 +41,7 @@ export default function Hero() {
             lineHeight: '1.2',
             marginBottom: '18px',
           }}>
-            Learning Platform Made fun for Kids
+            Turning screen time into smart time
           </h1>
 
           <p style={{
