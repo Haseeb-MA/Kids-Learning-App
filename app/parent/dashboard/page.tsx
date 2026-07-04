@@ -17,6 +17,7 @@ interface Profile {
   email: string
   family_code: string
   is_content_manager: boolean
+  nickname?: string | null
 }
 
 export default function ParentDashboard() {
@@ -45,7 +46,7 @@ export default function ParentDashboard() {
     // AFTER
 const { data: profileData } = await supabase
   .from('profiles')
-  .select('full_name, email, role, family_code, is_content_manager')
+  .select('full_name, email, role, family_code, is_content_manager, nickname')
   .eq('id', user.id)
   .maybeSingle()
 
@@ -257,6 +258,7 @@ if (profileData?.role !== 'parent') {
             }}>
               Welcome back, {profile?.full_name?.split(' ')[0]}
             </h1>
+            {profile?.nickname && <p className='text-sm text-gray-500'>{profile.nickname}</p>}
             <p style={{ fontSize: '14px', color: '#888780' }}>
               Manage your children's learning journey
             </p>
