@@ -51,7 +51,7 @@ export default function Hero() {
             lineHeight: '1.6',
             maxWidth: '440px',
           }}>
-            Assign subjects, set deadlines, and watch real progress — all in one place built for Grade 1 to 10.
+            Assign subjects, set deadlines, and watch real progress — all in one place built for all grades
           </p>
 
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
