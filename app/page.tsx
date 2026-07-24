@@ -9,7 +9,7 @@ import CallToAction from '@/components/CallToAction'
 import Footer from '@/components/Footer'
 
 export const metadata = {
-  title: 'BrightMinds · Learning made fun',
+  title: 'BrainyBuddies · Learning made fun for Kids',
   description: 'A learning platform for Grade 1 to Grade 10 students',
 }
 

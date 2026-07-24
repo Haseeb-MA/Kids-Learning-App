@@ -957,7 +957,7 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
                         }}>
                           {generatedQuestions.filter(q => q.accepted).length} of {generatedQuestions.length} questions accepted
                         </span>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                           <button
                             onClick={handleAcceptAll}
                             style={{
@@ -970,6 +970,25 @@ export default function SubjectDetail({ params }: { params: Promise<{ id: string
                               cursor: 'pointer',
                             }}>
                             Accept all
+                          </button>
+                          <button
+                            onClick={handleSaveQuestions}
+                            disabled={savingQuestions || generatedQuestions.filter(q => q.accepted).length === 0}
+                            style={{
+                              padding: '6px 12px',
+                              background: savingQuestions || generatedQuestions.filter(q => q.accepted).length === 0
+                                ? '#AFA9EC' : '#7F77DD',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              cursor: savingQuestions || generatedQuestions.filter(q => q.accepted).length === 0
+                                ? 'not-allowed' : 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}>
+                            {savingQuestions
+                              ? 'Saving...'
+                              : `Save ${generatedQuestions.filter(q => q.accepted).length} accepted`}
                           </button>
                           <button
                             onClick={handleGenerateQuestions}

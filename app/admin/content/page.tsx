@@ -27,10 +27,21 @@ export default function AdminContent() {
   const [newSubjectGrade, setNewSubjectGrade] = useState('1')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
+  const [toggling, setToggling] = useState<string | null>(null)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [sortColumn, setSortColumn] = useState<string>('name')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   useEffect(() => {
     checkAdminAndLoad()
   }, [])
+
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [toastMessage])
 
   const checkAdminAndLoad = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -116,11 +127,30 @@ export default function AdminContent() {
   }
 
   const toggleSubjectActive = async (id: string, current: boolean) => {
-    await supabase
-      .from('subjects')
-      .update({ is_active: !current })
-      .eq('id', id)
-    await loadSubjects()
+    if (toggling === id) return
+    setToggling(id)
+
+    const newValue = !current
+
+    try {
+      const { error: updateError } = await supabase
+        .from('subjects')
+        .update({ is_active: newValue })
+        .eq('id', id)
+
+      if (updateError) {
+        throw updateError
+      }
+
+      setSubjects(prev =>
+        prev.map(s => s.id === id ? { ...s, is_active: newValue } : s)
+      )
+      await loadSubjects()
+    } catch {
+      setToastMessage('Permission denied — contact your administrator')
+    }
+
+    setToggling(null)
   }
 
   const getCategoryIcon = (category: string) => {
@@ -139,6 +169,20 @@ export default function AdminContent() {
       case 'Science': return '#FAEEDA'
       default: return '#EEEDFE'
     }
+  }
+
+  const sortSubjects = (subjects: any[]) => {
+    return [...subjects].sort((a, b) => {
+      const aVal = a[sortColumn]
+      const bVal = b[sortColumn]
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+      }
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal
+      }
+      return 0
+    })
   }
 
   const filteredSubjects = subjects.filter(s => {
@@ -171,6 +215,23 @@ export default function AdminContent() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f4f0' }}>
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: '#FCEBEB',
+          border: '0.5px solid #F09595',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '13px',
+          color: '#A32D2D',
+          zIndex: 1000,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        }}>
+          {toastMessage}
+        </div>
+      )}
 
       <nav style={{
         background: '#26215C',
@@ -489,11 +550,47 @@ export default function AdminContent() {
           }}>
             <thead>
               <tr style={{ background: '#f5f4f0' }}>
-                <th style={thStyle}>Subject</th>
-                <th style={thStyle}>Grade</th>
+                <th
+                  style={{ ...thStyle, cursor: 'pointer' }}
+                  onClick={() => {
+                    if (sortColumn === 'name') {
+                      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+                    } else {
+                      setSortColumn('name')
+                      setSortDirection('asc')
+                    }
+                  }}
+                >
+                  Subject{sortColumn === 'name' && (sortDirection === 'asc' ? ' ▲' : ' ▼')}
+                </th>
+                <th
+                  style={{ ...thStyle, cursor: 'pointer' }}
+                  onClick={() => {
+                    if (sortColumn === 'grade_level') {
+                      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+                    } else {
+                      setSortColumn('grade_level')
+                      setSortDirection('asc')
+                    }
+                  }}
+                >
+                  Grade{sortColumn === 'grade_level' && (sortDirection === 'asc' ? ' ▲' : ' ▼')}
+                </th>
                 <th style={thStyle}>Lessons</th>
                 <th style={thStyle}>Quizzes</th>
-                <th style={thStyle}>Status</th>
+                <th
+                  style={{ ...thStyle, cursor: 'pointer' }}
+                  onClick={() => {
+                    if (sortColumn === 'is_active') {
+                      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+                    } else {
+                      setSortColumn('is_active')
+                      setSortDirection('asc')
+                    }
+                  }}
+                >
+                  Status{sortColumn === 'is_active' && (sortDirection === 'asc' ? ' ▲' : ' ▼')}
+                </th>
                 <th style={thStyle}>Actions</th>
               </tr>
             </thead>
@@ -510,7 +607,7 @@ export default function AdminContent() {
                   </td>
                 </tr>
               ) : (
-                filteredSubjects.map((subject, index) => (
+                sortSubjects(filteredSubjects).map((subject, index) => (
                   <tr key={subject.id} style={{
                     borderTop: index === 0 ? 'none' : '0.5px solid #e5e3db',
                   }}>
@@ -606,16 +703,18 @@ export default function AdminContent() {
                         </button>
                         <button
                           onClick={() => toggleSubjectActive(subject.id, subject.is_active)}
+                          disabled={toggling === subject.id}
                           style={{
                             padding: '5px 10px',
                             background: 'transparent',
                             border: '0.5px solid #D3D1C7',
                             borderRadius: '6px',
                             fontSize: '12px',
-                            color: subject.is_active ? '#A32D2D' : '#085041',
-                            cursor: 'pointer',
+                            color: toggling === subject.id ? '#888780' : subject.is_active ? '#A32D2D' : '#085041',
+                            cursor: toggling === subject.id ? 'not-allowed' : 'pointer',
+                            opacity: toggling === subject.id ? 0.6 : 1,
                           }}>
-                          {subject.is_active ? 'Disable' : 'Enable'}
+                          {toggling === subject.id ? '...' : subject.is_active ? 'Disable' : 'Enable'}
                         </button>
                       </div>
                     </td>

@@ -7,7 +7,7 @@ export default function PrivacyPage() {
   const router = useRouter()
 
   useEffect(() => {
-    document.title = 'Privacy policy · BrightMinds'
+    document.title = 'Privacy policy · BrainyBuddies'
   }, [])
 
   return (
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
             fontWeight: '500',
             color: '#2C2C2A',
           }}>
-            BrightMinds
+            BrainyBuddies
           </span>
         </div>
       </nav>
@@ -78,7 +78,7 @@ export default function PrivacyPage() {
         {[
           {
             title: 'Who we are',
-            content: 'BrightMinds is a learning platform designed for school-age children from Grade 1 to Grade 10. The platform is managed by parents who create accounts on behalf of their children. We are committed to protecting the privacy of all users, especially children.',
+            content: 'BrainyBuddies is a learning platform designed for school-age children from Grade 1 to Grade 10. The platform is managed by parents who create accounts on behalf of their children. We are committed to protecting the privacy of all users, especially children.',
           },
           {
             title: 'What information we collect',
@@ -102,7 +102,7 @@ export default function PrivacyPage() {
           },
           {
             title: 'AI features',
-            content: 'BrightMinds uses Claude AI by Anthropic to power the homework helper and content generation features. Questions asked in the homework helper are sent to Anthropic\'s API to generate responses. We do not store these conversations beyond the current session. Please review Anthropic\'s privacy policy at anthropic.com for details on how they handle data.',
+            content: 'BrainyBuddies uses Claude AI by Anthropic to power the homework helper and content generation features. Questions asked in the homework helper are sent to Anthropic\'s API to generate responses. We do not store these conversations beyond the current session. Please review Anthropic\'s privacy policy at anthropic.com for details on how they handle data.',
           },
           {
             title: 'Contact us',

@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -141,7 +140,7 @@ const handleForgotPassword = async () => {
           color: '#888780',
           marginBottom: '28px',
         }}>
-          Log in to your BrightMinds account
+          Log in to your BrainyBuddies account
         </p>
 
         {error && (

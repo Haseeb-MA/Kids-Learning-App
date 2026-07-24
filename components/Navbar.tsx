@@ -28,7 +28,7 @@ export default function Navbar() {
           <span style={{ color: '#fff', fontSize: '18px' }}>★</span>
         </div>
         <span style={{ fontSize: '18px', fontWeight: '500', color: '#2C2C2A' }}>
-          BrightMinds
+          BrainyBuddies
         </span>
       </div>
 
