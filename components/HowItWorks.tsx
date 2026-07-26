@@ -37,7 +37,7 @@ export default function HowItWorks() {
             color: '#26215C',
             marginBottom: '10px',
           }}>
-            How it works
+            Do you know what to know how it works?
           </h2>
           <p style={{
             fontSize: '15px',
