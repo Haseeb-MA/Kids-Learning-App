@@ -4,6 +4,7 @@ export default function Footer() {
       heading: 'Subjects',
       links: [
         { label: 'Mathematics', href: '/login' },
+        { label: 'Social', href: '/login' },
         { label: 'English', href: '/login' },
         { label: 'Science', href: '/login' },
         { label: 'AI homework help', href: '/login' },
