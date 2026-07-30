@@ -46,7 +46,7 @@ const studentFeatures = [
   },
   {
     icon: '💡',
-    title: 'Instant hints',
+    title: 'Revision plan',
     desc: 'Get helpful nudges without spoiling the answer',
     bg: '#E6F1FB',
   },
