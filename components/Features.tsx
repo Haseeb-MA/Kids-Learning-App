@@ -47,7 +47,7 @@ const studentFeatures = [
   {
     icon: '💡',
     title: 'Revision plan',
-    desc: 'Get helpful nudges without spoiling the answer',
+    desc: 'Step-by-step planned portion improvements.',
     bg: '#E6F1FB',
   },
 ]
