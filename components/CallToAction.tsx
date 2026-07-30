@@ -45,6 +45,20 @@ export default function CallToAction() {
             Create a free account
           </button>
           <button
+            onClick={() => router.push('/signup')}
+            style={{
+              padding: '13px 32px',
+              background: 'transparent',
+              color: '#ffffff',
+              border: '1.5px solid #7F77DD',
+              borderRadius: '8px',
+              fontSize: '15px',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}>
+            I am a parent
+          </button>
+          <button
             onClick={() => router.push('/child-login')}
             style={{
               padding: '13px 32px',
