@@ -6,6 +6,12 @@ const subjects = [
     bg: '#EAF3DE',
   },
   {
+    icon: '🌍',
+    name: 'Social',
+    topics: 'History, geography, civics +8',
+    bg: '#FDE8D8',
+  },
+  {
     icon: '📖',
     name: 'English',
     topics: 'Reading, writing, grammar +10',
