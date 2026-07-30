@@ -27,7 +27,7 @@ export default function CallToAction() {
           marginBottom: '36px',
           lineHeight: '1.6',
         }}>
-          Join parents already using BrainyBuddies to keep their children learning, growing and ahead of the class.
+          Help your child unlock their full potential through fun, personalized, and effective learning with brainybuddies.
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button
