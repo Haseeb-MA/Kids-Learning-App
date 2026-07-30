@@ -73,7 +73,7 @@ export default function Footer() {
             margin: 0,
             maxWidth: '180px',
           }}>
-            Learning Made fun for Kids for Grade 1 to Grade 10.
+            Learning Made fun for Kids from Grade 1 to Grade 10.
           </p>
         </div>
 
