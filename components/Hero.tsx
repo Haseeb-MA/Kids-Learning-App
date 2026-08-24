@@ -41,7 +41,7 @@ export default function Hero() {
             lineHeight: '1.2',
             marginBottom: '18px',
           }}>
-            Helping your child fall in love with learning
+            Guiding your child to enjoy school and discovery
           </h1>
 
           <p style={{
