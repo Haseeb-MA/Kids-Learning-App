@@ -41,7 +41,7 @@ export default function Hero() {
             lineHeight: '1.2',
             marginBottom: '18px',
           }}>
-            Guiding your child to enjoy school and discovery
+            Inspiring young minds to embrace education and curiosity
           </h1>
 
           <p style={{
