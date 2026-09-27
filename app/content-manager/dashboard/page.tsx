@@ -129,6 +129,7 @@ export default function ContentManagerDashboard() {
       case 'Mathematics': return '➕'
       case 'English': return '📖'
       case 'Science': return '🔬'
+      case 'Social': return '🌍'
       default: return '📚'
     }
   }
@@ -138,6 +139,7 @@ export default function ContentManagerDashboard() {
       case 'Mathematics': return '#EAF3DE'
       case 'English': return '#E6F1FB'
       case 'Science': return '#FAEEDA'
+      case 'Social': return '#FBE6EF'
       default: return '#EEEDFE'
     }
   }
@@ -401,6 +403,7 @@ export default function ContentManagerDashboard() {
                   <option>Mathematics</option>
                   <option>English</option>
                   <option>Science</option>
+                  <option>Social</option>
                 </select>
               </div>
               <div>
@@ -482,7 +485,7 @@ export default function ContentManagerDashboard() {
           />
 
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {['All', 'Mathematics', 'English', 'Science'].map(cat => (
+            {['All', 'Mathematics', 'English', 'Science', 'Social'].map(cat => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
