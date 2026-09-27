@@ -14,9 +14,17 @@ interface Subject {
   quiz_count?: number
 }
 
+interface Category {
+  name: string
+  icon: string
+  color: string
+  sort_order: number
+}
+
 export default function AdminContent() {
   const router = useRouter()
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [activeGrade, setActiveGrade] = useState<number | 'all'>('all')
   const [activeCategory, setActiveCategory] = useState<string>('All')
@@ -61,8 +69,24 @@ export default function AdminContent() {
       return
     }
 
-    await loadSubjects()
+    await Promise.all([loadSubjects(), loadCategories()])
     setLoading(false)
+  }
+
+  const loadCategories = async () => {
+    const { data } = await supabase
+      .from('categories')
+      .select('*')
+      .order('sort_order')
+
+    if (data) {
+      setCategories(data)
+      if (data.length > 0) {
+        setNewSubjectCategory(prev =>
+          data.some((c: Category) => c.name === prev) ? prev : data[0].name
+        )
+      }
+    }
   }
 
   const loadSubjects = async () => {
@@ -154,21 +178,11 @@ export default function AdminContent() {
   }
 
   const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'Mathematics': return '➕'
-      case 'English': return '📖'
-      case 'Science': return '🔬'
-      default: return '📚'
-    }
+    return categories.find(c => c.name === category)?.icon || '📚'
   }
 
   const getCategoryBg = (category: string) => {
-    switch (category) {
-      case 'Mathematics': return '#EAF3DE'
-      case 'English': return '#E6F1FB'
-      case 'Science': return '#FAEEDA'
-      default: return '#EEEDFE'
-    }
+    return categories.find(c => c.name === category)?.color || '#EEEDFE'
   }
 
   const sortSubjects = (subjects: any[]) => {
@@ -399,9 +413,9 @@ export default function AdminContent() {
                     background: '#fff',
                     boxSizing: 'border-box',
                   }}>
-                  <option>Mathematics</option>
-                  <option>English</option>
-                  <option>Science</option>
+                  {categories.map(c => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -483,7 +497,7 @@ export default function AdminContent() {
           />
 
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {['All', 'Mathematics', 'English', 'Science'].map(cat => (
+            {['All', ...categories.map(c => c.name)].map(cat => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
