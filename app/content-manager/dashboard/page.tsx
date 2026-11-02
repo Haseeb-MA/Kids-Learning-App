@@ -35,6 +35,15 @@ export default function ContentManagerDashboard() {
   const [newSubjectGrade, setNewSubjectGrade] = useState('1')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editCategory, setEditCategory] = useState('')
+  const [editGrade, setEditGrade] = useState('1')
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
+  const [deleteSubjectId, setDeleteSubjectId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
     document.title = 'Content manager · BrightMinds'
@@ -146,6 +155,77 @@ export default function ContentManagerDashboard() {
       .update({ is_active: !current })
       .eq('id', id)
     await loadSubjects()
+  }
+
+  const openEditSubject = (subject: Subject) => {
+    setEditingSubject(subject)
+    setEditName(subject.name)
+    setEditCategory(subject.category)
+    setEditGrade(String(subject.grade_level))
+    setEditError('')
+  }
+
+  const handleUpdateSubject = async () => {
+    if (!editingSubject) return
+    setEditSaving(true)
+    setEditError('')
+
+    if (!editName.trim()) {
+      setEditError('Please enter a subject name')
+      setEditSaving(false)
+      return
+    }
+
+    const { error: updateError } = await supabase
+      .from('subjects')
+      .update({
+        name: editName.trim(),
+        category: editCategory,
+        grade_level: parseInt(editGrade),
+      })
+      .eq('id', editingSubject.id)
+
+    if (updateError) {
+      setEditError(updateError.message)
+      setEditSaving(false)
+      return
+    }
+
+    setEditingSubject(null)
+    await loadSubjects()
+    setEditSaving(false)
+  }
+
+  const handleDeleteSubject = async (id: string) => {
+    setDeleting(true)
+    setDeleteError('')
+
+    const { data: lessonsForSubject } = await supabase
+      .from('lessons')
+      .select('id')
+      .eq('subject_id', id)
+
+    const lessonIds = lessonsForSubject?.map(l => l.id) || []
+
+    if (lessonIds.length > 0) {
+      await supabase.from('quizzes').delete().in('lesson_id', lessonIds)
+      await supabase.from('lessons').delete().eq('subject_id', id)
+    }
+
+    const { error: deleteErr } = await supabase
+      .from('subjects')
+      .delete()
+      .eq('id', id)
+
+    if (deleteErr) {
+      setDeleteError(deleteErr.message)
+      setDeleting(false)
+      return
+    }
+
+    setDeleteSubjectId(null)
+    await loadSubjects()
+    setDeleting(false)
   }
 
   const getCategoryIcon = (category: string) => {
@@ -473,6 +553,228 @@ export default function ContentManagerDashboard() {
           </div>
         )}
 
+        {editingSubject && (
+          <div style={{
+            background: '#ffffff',
+            border: '0.5px solid #e5e3db',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '24px',
+          }}>
+            <h2 style={{
+              fontSize: '16px',
+              fontWeight: '500',
+              color: '#2C2C2A',
+              marginBottom: '20px',
+            }}>
+              Edit subject
+            </h2>
+
+            {editError && (
+              <div style={{
+                background: '#FCEBEB',
+                border: '0.5px solid #F09595',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                marginBottom: '16px',
+                fontSize: '13px',
+                color: '#A32D2D',
+              }}>
+                {editError}
+              </div>
+            )}
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: '12px',
+              marginBottom: '16px',
+            }}>
+              <div>
+                <label style={{
+                  fontSize: '13px',
+                  color: '#444441',
+                  display: 'block',
+                  marginBottom: '6px',
+                }}>
+                  Subject name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Fractions"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleUpdateSubject()}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    border: '0.5px solid #D3D1C7',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{
+                  fontSize: '13px',
+                  color: '#444441',
+                  display: 'block',
+                  marginBottom: '6px',
+                }}>
+                  Category
+                </label>
+                <select
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    border: '0.5px solid #D3D1C7',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    background: '#fff',
+                    boxSizing: 'border-box',
+                  }}>
+                  {categories.map(c => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{
+                  fontSize: '13px',
+                  color: '#444441',
+                  display: 'block',
+                  marginBottom: '6px',
+                }}>
+                  Grade level
+                </label>
+                <select
+                  value={editGrade}
+                  onChange={(e) => setEditGrade(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    border: '0.5px solid #D3D1C7',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    background: '#fff',
+                    boxSizing: 'border-box',
+                  }}>
+                  {[1,2,3,4,5,6,7,8,9,10].map(g => (
+                    <option key={g} value={g}>Grade {g}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={handleUpdateSubject}
+                disabled={editSaving}
+                style={{
+                  padding: '10px 20px',
+                  background: editSaving ? '#AFA9EC' : '#7F77DD',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  cursor: editSaving ? 'not-allowed' : 'pointer',
+                }}>
+                {editSaving ? 'Saving...' : 'Save changes'}
+              </button>
+              <button
+                onClick={() => {
+                  setEditingSubject(null)
+                  setEditError('')
+                }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {deleteSubjectId && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              padding: '24px',
+              maxWidth: '400px',
+              width: '90%',
+            }}>
+              <h2 style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                color: '#2C2C2A',
+                marginBottom: '12px',
+              }}>
+                Delete this subject?
+              </h2>
+              <p style={{
+                fontSize: '13px',
+                color: '#888780',
+                marginBottom: '16px',
+              }}>
+                This will permanently delete the subject and all of its lessons and quizzes. This action cannot be undone.
+              </p>
+
+              {deleteError && (
+                <div style={{
+                  background: '#FCEBEB',
+                  border: '0.5px solid #F09595',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  marginBottom: '16px',
+                  fontSize: '13px',
+                  color: '#A32D2D',
+                }}>
+                  {deleteError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => {
+                    setDeleteSubjectId(null)
+                    setDeleteError('')
+                  }}>
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDeleteSubject(deleteSubjectId)}
+                  disabled={deleting}
+                  style={{
+                    padding: '9px 18px',
+                    background: deleting ? '#F09595' : '#D64545',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    cursor: deleting ? 'not-allowed' : 'pointer',
+                  }}>
+                  {deleting ? 'Deleting...' : 'Delete subject'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={{
           display: 'flex',
           gap: '12px',
@@ -690,6 +992,35 @@ export default function ContentManagerDashboard() {
                             cursor: 'pointer',
                           }}>
                           {subject.is_active ? 'Disable' : 'Enable'}
+                        </button>
+                        <button
+                          onClick={() => openEditSubject(subject)}
+                          style={{
+                            padding: '5px 10px',
+                            background: 'transparent',
+                            border: '0.5px solid #D3D1C7',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            color: '#444441',
+                            cursor: 'pointer',
+                          }}>
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeleteSubjectId(subject.id)
+                            setDeleteError('')
+                          }}
+                          style={{
+                            padding: '5px 10px',
+                            background: 'transparent',
+                            border: '0.5px solid #F09595',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            color: '#A32D2D',
+                            cursor: 'pointer',
+                          }}>
+                          Delete
                         </button>
                       </div>
                     </td>
