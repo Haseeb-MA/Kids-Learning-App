@@ -41,7 +41,7 @@ export default function Hero() {
             lineHeight: '1.2',
             marginBottom: '18px',
           }}>
-            Inspiring young Children to learn
+            Inspiring young KIDS to learn
           </h1>
 
           <p style={{
