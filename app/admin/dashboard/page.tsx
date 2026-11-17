@@ -573,7 +573,7 @@ export default function AdminDashboard() {
           color: '#2C2C2A',
           marginBottom: '6px',
         }}>
-          Admin dashboard
+          Admin dashboard to manage parents, children and content
         </h1>
         <p style={{
           fontSize: '14px',
